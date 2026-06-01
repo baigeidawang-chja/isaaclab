@@ -28,30 +28,55 @@ from isaaclab_assets.robots.ant import ANT_CFG  # isort: skip
 class MySceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with an ant robot."""
 
-    # terrain
-    terrain = TerrainImporterCfg(
-        prim_path="/World/ground",
-        terrain_type="plane",
-        collision_group=-1,
-        physics_material=sim_utils.RigidBodyMaterialCfg(
-            friction_combine_mode="average",
-            restitution_combine_mode="average",
-            static_friction=1.0,
-            dynamic_friction=1.0,
-            restitution=0.0,
-        ),
-        debug_vis=False,
-    )
-
+    
+    # 如果仍然需要TerrainImporter的功能（如环境原点配置），可以同时使用
+    # 但先注释掉，看看直接导入是否能解决问题
+    # terrain = TerrainImporterCfg(
+    #     prim_path="/World/ground",
+    #     terrain_type="usd",
+    #     collision_group=-1,
+    #     usd_path=f"/home/chja/myproject/water.usd",
+    #     visual_material=sim_utils.PreviewSurfaceCfg(
+    #         diffuse_color=(1.0, 1.0, 1.0),
+    #         metallic=0.0,
+    #         roughness=0.5,
+    #     ),
+    #     physics_material=sim_utils.RigidBodyMaterialCfg(
+    #         friction_combine_mode="multiply",
+    #         restitution_combine_mode="multiply",
+    #         static_friction=1.0,
+    #         dynamic_friction=1.0,
+    #         restitution=0.0,
+    #     ),
+    #     debug_vis=True,
+    # )
+    
+    ground = AssetBaseCfg(
+            prim_path="/World/ground",
+            spawn=sim_utils.UsdFileCfg(
+                usd_path=f"/home/chja/myproject/water.usd",
+                # 添加visual_material确保ground可见
+                visual_material=sim_utils.PreviewSurfaceCfg(
+                    diffuse_color=(0.8, 0.8, 0.8),  # 浅灰色，确保可见
+                    metallic=0.0,
+                    roughness=0.5,
+                ),
+            ),
+        )
+        
     # robot
     robot = ANT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # lights
+    # lights - 使用合理的配置
+    # 方案1：使用DistantLightCfg（推荐，最简单）
     light = AssetBaseCfg(
         prim_path="/World/light",
-        spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+        spawn=sim_utils.DistantLightCfg(
+            color=(0.95, 0.95, 0.95),
+            intensity=3000.0,  # 合理的强度
+        ),
     )
-
+        
 
 ##
 # MDP settings
@@ -160,7 +185,7 @@ class AntEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the MuJoCo-style Ant walking environment."""
 
     # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=4096, env_spacing=5.0)
+    scene: MySceneCfg = MySceneCfg(num_envs=1, env_spacing=5.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

@@ -54,7 +54,7 @@ This model is taken from: https://github.com/Improbable-AI/walk-these-ways
 
 UNITREE_A1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/A1/a1.usd",
+        usd_path=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Robots/Unitree/A1/a1.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

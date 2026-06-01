@@ -337,6 +337,7 @@ class TerminationTermCfg(ManagerTermBaseCfg):
     """
 
     time_out: bool = False
+    # goal_reached: bool = False
     """Whether the termination term contributes towards episodic timeouts. Defaults to False.
 
     Note:

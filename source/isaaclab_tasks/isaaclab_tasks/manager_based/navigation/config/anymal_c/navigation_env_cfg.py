@@ -48,7 +48,7 @@ class ActionsCfg:
 
     pre_trained_policy_action: mdp.PreTrainedPolicyActionCfg = mdp.PreTrainedPolicyActionCfg(
         asset_name="robot",
-        policy_path=f"{ISAACLAB_NUCLEUS_DIR}/Policies/ANYmal-C/Blind/policy.pt",
+        policy_path=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/IsaacLab/Policies/ANYmal-C/Blind/policy.pt",
         low_level_decimation=4,
         low_level_actions=LOW_LEVEL_ENV_CFG.actions.joint_pos,
         low_level_observations=LOW_LEVEL_ENV_CFG.observations.policy,

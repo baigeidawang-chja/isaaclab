@@ -11,6 +11,7 @@ the observation introduced by the function.
 
 from __future__ import annotations
 
+import os
 import torch
 from typing import TYPE_CHECKING
 
@@ -28,7 +29,35 @@ if TYPE_CHECKING:
 """
 Root state.
 """
+def _dbg_print_joint_vel(env, asset, asset_cfg, tag: str, value: torch.Tensor):
+    """Print env0 joint velocities every N steps (controlled via env vars)."""
+    if os.getenv("ISAACLAB_PRINT_JOINT_VEL", "0") != "1":
+        return
+    every = int(os.getenv("ISAACLAB_PRINT_JOINT_VEL_EVERY", "50"))
+    if every <= 0:
+        return
 
+    # step counter on env object (best effort)
+    key = "_dbg_joint_vel_step"
+    step = getattr(env, key, 0) + 1
+    setattr(env, key, step)
+
+    if step % every != 0:
+        return
+
+    env_id = 0
+    joint_ids = asset_cfg.joint_ids
+    try:
+        joint_names = [asset.joint_names[i] for i in joint_ids] if hasattr(asset, "joint_names") else None
+    except Exception:
+        joint_names = None
+
+    v = value[env_id].detach().cpu()
+    print(f"\n[joint_vel][{tag}] step={step} env{env_id} shape={tuple(value.shape)}")
+    print(f"  joint_ids={list(joint_ids)}")
+    if joint_names is not None:
+        print(f"  joint_names={joint_names}")
+    print(f"  vel={v.tolist()}")
 
 def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Root height in the simulation world frame."""
@@ -154,12 +183,16 @@ def joint_vel_rel(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityC
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
-    return asset.data.joint_vel[:, asset_cfg.joint_ids] - asset.data.default_joint_vel[:, asset_cfg.joint_ids]
+    # return asset.data.joint_vel[:, asset_cfg.joint_ids] - asset.data.default_joint_vel[:, asset_cfg.joint_ids]
+    out = asset.data.joint_vel[:, asset_cfg.joint_ids] - asset.data.default_joint_vel[:, asset_cfg.joint_ids]
 
+    _dbg_print_joint_vel(env, asset, asset_cfg, "joint_vel_rel", out)
+    return out
 
 """
 Sensors.
 """
+
 
 
 def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, offset: float = 0.5) -> torch.Tensor:
@@ -230,6 +263,9 @@ def imu_lin_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg
     asset: Imu = env.scene[asset_cfg.name]
     return asset.data.lin_acc_b
 
+def imu_lin_acc_axis_x(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("imu"))-> torch.Tensor:
+    asset: Imu = env.scene[asset_cfg.name]
+    return asset.data.lin_acc_b[:, 0:1]
 
 def image(
     env: ManagerBasedEnv,

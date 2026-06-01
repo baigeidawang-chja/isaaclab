@@ -33,6 +33,19 @@
             "args" : ["--task", "Isaac-Reach-Franka-v0", "--num_envs", "32"],
             "program": "${workspaceFolder}/source/standalone/workflows/rsl_rl/play.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Train KY2",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/reinforcement_learning/rsl_rl/train.py",
+            "args": ["--task", "Isaac-KY2-v0"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "env": {
+                "HYDRA_FULL_ERROR": "1"
+            }
         }
     ]
 }

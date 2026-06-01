@@ -67,7 +67,7 @@ RED_ARROW_X_MARKER_CFG = VisualizationMarkersCfg(
     markers={
         "arrow": sim_utils.UsdFileCfg(
             usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/arrow_x.usd",
-            scale=(1.0, 0.1, 0.1),
+            scale=(0.05, 0.05, 0.15),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
         )
     }
@@ -130,3 +130,15 @@ POSITION_GOAL_MARKER_CFG = VisualizationMarkersCfg(
     }
 )
 """Configuration for the end-effector tracking marker."""
+
+#自定义
+##
+
+SPHERE_MARKER_CFG = VisualizationMarkersCfg(
+    markers={
+        "sphere": sim_utils.SphereCfg(
+            radius=0.1,
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+        ),
+    }
+)

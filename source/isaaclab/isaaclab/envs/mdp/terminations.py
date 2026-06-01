@@ -32,6 +32,8 @@ def time_out(env: ManagerBasedRLEnv) -> torch.Tensor:
     return env.episode_length_buf >= env.max_episode_length
 
 
+
+
 def command_resample(env: ManagerBasedRLEnv, command_name: str, num_resamples: int = 1) -> torch.Tensor:
     """Terminate the episode based on the total number of times commands have been re-sampled.
 
@@ -70,6 +72,40 @@ def root_height_below_minimum(
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     return asset.data.root_pos_w[:, 2] < minimum_height
+
+#自己加的
+def root_pos_limit(
+    env: ManagerBasedRLEnv,
+    x: tuple[float, float] | None = None,
+    y: tuple[float, float] | None = None,
+    z: tuple[float, float] | None = None,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Terminate when the asset's root position is outside the given limits.
+
+    Args:
+        env: The environment.
+        x: The range of allowed x positions. Defaults to None.
+        y: The range of allowed y positions. Defaults to None.
+        z: The range of allowed z positions. Defaults to None.
+        asset_cfg: The asset configuration. Defaults to SceneEntityCfg("robot").
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject | Articulation = env.scene[asset_cfg.name]
+    root_pos = asset.data.root_pos_w
+
+    # check x limits
+    out_of_bounds = torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
+    if x is not None:
+        out_of_bounds |= (root_pos[:, 0] < x[0]) | (root_pos[:, 0] > x[1])
+    # check y limits
+    if y is not None:
+        out_of_bounds |= (root_pos[:, 1] < y[0]) | (root_pos[:, 1] > y[1])
+    # check z limits
+    if z is not None:
+        out_of_bounds |= (root_pos[:, 2] < z[0]) | (root_pos[:, 2] > z[1])
+
+    return out_of_bounds
 
 
 """

@@ -610,6 +610,10 @@ Comprehensive List of Environments
       - **rsl_rl** (PPO), **skrl** (PPO)
     * - Isaac-Velocity-Flat-Unitree-A1-v0
       - Isaac-Velocity-Flat-Unitree-A1-Play-v0
+        Manager Based
+      - **rsl_rl** (PPO), **skrl** (PPO)
+    * - Isaac-Velocity-MyCar-v0
+      - Isaac-Velocity-MyCar-Play-v0
       - Manager Based
       - **rsl_rl** (PPO), **skrl** (PPO)
     * - Isaac-Velocity-Flat-Unitree-Go1-v0

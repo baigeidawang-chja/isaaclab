@@ -8,13 +8,17 @@ from dataclasses import MISSING
 
 from isaaclab.managers import CommandTermCfg
 from isaaclab.markers import VisualizationMarkersCfg
-from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG
+from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, GREEN_ARROW_X_MARKER_CFG, RED_ARROW_X_MARKER_CFG, POSITION_GOAL_MARKER_CFG, CUBOID_MARKER_CFG, SPHERE_MARKER_CFG
 from isaaclab.utils import configclass
+from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 
 from .null_command import NullCommand
-from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand
+from .pose_2d_command import TerrainBasedPose2dCommand, UniformPose2dCommand, SequentialWaypointCommand
 from .pose_command import UniformPoseCommand
 from .velocity_command import NormalVelocityCommand, UniformVelocityCommand
+
+from isaaclab.sim import PreviewSurfaceCfg
+
 
 
 @configclass
@@ -219,13 +223,13 @@ class UniformPose2dCommandCfg(CommandTermCfg):
     ranges: Ranges = MISSING
     """Distribution ranges for the position commands."""
 
-    goal_pose_visualizer_cfg: VisualizationMarkersCfg = GREEN_ARROW_X_MARKER_CFG.replace(
+    goal_pose_visualizer_cfg: VisualizationMarkersCfg = SPHERE_MARKER_CFG.replace(
         prim_path="/Visuals/Command/pose_goal"
     )
     """The configuration for the goal pose visualization marker. Defaults to GREEN_ARROW_X_MARKER_CFG."""
 
     # Set the scale of the visualization markers to (0.2, 0.2, 0.8)
-    goal_pose_visualizer_cfg.markers["arrow"].scale = (0.2, 0.2, 0.8)
+    goal_pose_visualizer_cfg.markers["sphere"].radius = 0.1
 
 
 @configclass
@@ -246,3 +250,56 @@ class TerrainBasedPose2dCommandCfg(UniformPose2dCommandCfg):
 
     ranges: Ranges = MISSING
     """Distribution ranges for the sampled commands."""
+
+@configclass
+class SequentialWaypointCommandCfg(CommandTermCfg):
+    
+    class_type: type = SequentialWaypointCommand
+
+    asset_name: str = "robot"
+
+    debug_vis: bool = True
+
+    waypoints: list = MISSING
+
+    success_threshold: float = 0.5
+
+    cyclic: bool = True
+
+    simple_heading: bool = MISSING
+
+    # goal_pose_visualizer_cfg: VisualizationMarkersCfg = SPHERE_MARKER_CFG.replace(
+    #     prim_path="/Visuals/Command/pose_goal"
+    # )
+    # 1. 为“当前”目标定义的绿色画笔
+    current_marker_cfg: VisualizationMarkersCfg = VisualizationMarkersCfg(
+        prim_path="/World/Visuals/CurrentWaypoint", # 必须是唯一路径
+        markers={ "sphere": UsdFileCfg(
+            usd_path=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere.usd",
+            scale=(0.35, 0.35, 0.35),
+            visual_material=PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0))
+        )}
+    )
+    # 2. 为“已访问”航点定义的蓝色画笔
+    visited_marker_cfg: VisualizationMarkersCfg = VisualizationMarkersCfg(
+        prim_path="/World/Visuals/VisitedWaypoints", # 必须是唯一路径
+        markers={ "sphere": UsdFileCfg(
+            usd_path=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere.usd",
+            scale=(0.3, 0.3, 0.3),
+            visual_material=PreviewSurfaceCfg(diffuse_color=(0.2, 0.4, 0.9))
+        )}
+    )
+    # 3. 为“未访问”航点定义的灰色画笔
+    unvisited_marker_cfg: VisualizationMarkersCfg = VisualizationMarkersCfg(
+        prim_path="/World/Visuals/UnvisitedWaypoints", # 必须是唯一路径
+        markers={ "sphere": UsdFileCfg(
+            usd_path=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Props/Shapes/sphere.usd",
+            scale=(0.3, 0.3, 0.3),
+            visual_material=PreviewSurfaceCfg(diffuse_color=(0.4, 0.4, 0.4))
+        )}
+    )
+
+    goal_pose_visualizer_cfg: VisualizationMarkersCfg = RED_ARROW_X_MARKER_CFG.replace(
+        prim_path="/World/Visuals/pose"
+    )
+    """The configuration for the goal pose visualization marker. Defaults to GREEN_ARROW_X_MARKER_CFG."""
