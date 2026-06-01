@@ -60,3 +60,33 @@ _build
 
 # Pre-Trained Checkpoints
 /.pretrained_checkpoints/
+.vscode/
+.vscode/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+*.env
+_isaac_sim/
+isaacsim/
+logs/
+runs/
+outputs/
+wandb/
+recordings/
+vis_output/
+student_out/
+teacher_rollouts/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.jit
+*.engine
+isaac_lab_learning/
+.DS_Store
+Thumbs.db
