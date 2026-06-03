@@ -57,6 +57,9 @@ defaults:
   use_stuck_head: False
   stuck_head:
     {layers: 2, loss_scale: 0.5, outscale: 1.0}
+  use_sector_contact_head: True
+  sector_contact_head:
+    {layers: 2, loss_scale: 0.5, outscale: 1.0}
   dyn_scale: 0.5
   rep_scale: 0.1
   kl_free: 1.0

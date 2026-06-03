@@ -558,9 +558,9 @@ class Agent(nn.Module):
         self._interaction_dirs = int(config.get("interaction_dirs", 12))
         self._interaction_channels = 3
 
-        exclude = ("is_first", "is_last", "is_terminal", "reward", "mode_label", "interaction_label", "stuck_label", "nextprop_target")
-        enc_space = {k: v for k, v in obs_space.items() if k not in exclude}
-        dec_space = {k: v for k, v in obs_space.items() if k not in exclude}
+        exclude = ("is_first", "is_last", "is_terminal", "reward", "nextprop_target")
+        enc_space = {k: v for k, v in obs_space.items() if k not in exclude and not k.endswith("_label")}
+        dec_space = {k: v for k, v in obs_space.items() if k not in exclude and not k.endswith("_label")}
 
         enc_cfg = config.get("enc", {})
         dyn_cfg = config.get("dyn", {})

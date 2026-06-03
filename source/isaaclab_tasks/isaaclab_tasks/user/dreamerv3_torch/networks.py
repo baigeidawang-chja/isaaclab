@@ -306,11 +306,11 @@ class MultiEncoder(nn.Module):
         symlog_inputs,
     ):
         super(MultiEncoder, self).__init__()
-        excluded = ("is_first", "is_last", "is_terminal", "reward", "stuck_label", "stuck")
+        excluded = ("is_first", "is_last", "is_terminal", "reward", "stuck")
         shapes = {
             k: v
             for k, v in shapes.items()
-            if k not in excluded and not k.startswith("log_")
+            if k not in excluded and not k.endswith("_label") and not k.startswith("log_")
         }
         self.cnn_shapes = {
             k: v for k, v in shapes.items() if len(v) == 3 and re.match(cnn_keys, k)
@@ -377,8 +377,8 @@ class MultiDecoder(nn.Module):
         outscale,
     ):
         super(MultiDecoder, self).__init__()
-        excluded = ("is_first", "is_last", "is_terminal", "stuck_label", "stuck")
-        shapes = {k: v for k, v in shapes.items() if k not in excluded}
+        excluded = ("is_first", "is_last", "is_terminal", "stuck")
+        shapes = {k: v for k, v in shapes.items() if k not in excluded and not k.endswith("_label")}
         self.cnn_shapes = {
             k: v for k, v in shapes.items() if len(v) == 3 and re.match(cnn_keys, k)
         }

@@ -204,6 +204,11 @@ class ObservationsCfg:
 
         stuck_label = ObsTerm(func=observation.get_stuck_label)
 
+        contact_memory_label = ObsTerm(
+            func=observation.get_contact_memory_body_label,
+            params={"num_sectors": 8},
+        )
+
         # local_tracking_state = ObsTerm(func=observation.get_local_tracking_state)
 
         # Current target + next waypoint for earlier turn preparation in S-curves.
@@ -403,6 +408,38 @@ class MyCarSimpleEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.terminations.target_too_far.params["max_target_distance"] = 2.5
 
+
+class MyCarRecoverEnvCfg(LocomotionVelocityRoughEnvCfg):
+    """Controlled local stuck-recovery task for contact-memory experiments."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.sim.device = "cuda:0"
+        self.episode_length_s = 30.0
+
+        self.events.reset_local_nav.params["fixed_path_id"] = 0
+        self.events.reset_local_nav.params["disable_obstacles"] = False
+        self.events.reset_local_nav.params["obstacle_mode"] = "recover_template"
+        self.events.reset_local_nav.params["recover_obstacle_distance_range"] = (0.6, 1.0)
+        self.events.reset_local_nav.params["lateral_offset_range"] = (-0.04, 0.04)
+        self.events.reset_local_nav.params["heading_offset_range"] = (-0.06, 0.06)
+        self.events.reset_local_nav.params["start_speed_range"] = (0.0, 0.06)
+        self.events.reset_local_nav.params["waypoint_reach_thresh"] = 0.55
+        self.events.reset_local_nav.params["debug_vis"] = True
+
+        self.rewards.progress_forward.weight = 1.2
+        self.rewards.progress_forward.params["scale"] = 8.0
+        self.rewards.progress_forward.params["max_delta"] = 0.12
+        self.rewards.waypoint_reached.weight = 0.5
+        self.rewards.waypoint_reached.params["bonus"] = 0.15
+        self.rewards.heading_align.weight = 0.05
+        self.rewards.speed_tracking.weight = 0.1
+        self.rewards.speed_tracking.params["target_speed"] = 0.25
+        self.rewards.time_penalty.params["penalty_per_step"] = -0.002
+
+        self.terminations.target_too_far.params["max_target_distance"] = 7.0
+
+
 class MyCarRoughEnvCfg_PLAY(LocomotionVelocityRoughEnvCfg):
     def __post_init__(self):
         super().__post_init__()
@@ -411,6 +448,13 @@ class MyCarRoughEnvCfg_PLAY(LocomotionVelocityRoughEnvCfg):
 
 
 class MyCarSimpleEnvCfg_PLAY(MyCarSimpleEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 16
+        self.scene.env_spacing = 0
+
+
+class MyCarRecoverEnvCfg_PLAY(MyCarRecoverEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.num_envs = 16

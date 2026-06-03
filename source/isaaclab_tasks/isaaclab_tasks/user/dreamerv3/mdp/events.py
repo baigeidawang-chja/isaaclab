@@ -144,6 +144,27 @@ def _ensure_contact_memory_buffers(
         )
         robot = env.scene["robot"]
         env._contact_memory_initial_yaw = robot.data.heading_w.detach().clone()
+        env._contact_memory_last_update_step = torch.full(
+            (env.num_envs,), -1, dtype=torch.long, device=device
+        )
+        env._contact_memory_last_reset_step = torch.full(
+            (env.num_envs,), -1, dtype=torch.long, device=device
+        )
+    else:
+        if (
+            not hasattr(env, "_contact_memory_last_update_step")
+            or env._contact_memory_last_update_step.shape[0] != env.num_envs
+        ):
+            env._contact_memory_last_update_step = torch.full(
+                (env.num_envs,), -1, dtype=torch.long, device=device
+            )
+        if (
+            not hasattr(env, "_contact_memory_last_reset_step")
+            or env._contact_memory_last_reset_step.shape[0] != env.num_envs
+        ):
+            env._contact_memory_last_reset_step = torch.full(
+                (env.num_envs,), -1, dtype=torch.long, device=device
+            )
 
 
 def _sample_obstacle_template(
@@ -175,6 +196,33 @@ def _sample_obstacle_template(
         (s0, float(rng.uniform(-0.4, 0.4)), r),
         (s0 + gap, float(rng.uniform(-0.8, 0.8)), r),
     ]
+
+
+def _sample_recover_template_obstacles(
+    rng: np.random.Generator,
+    path: dict[str, torch.Tensor],
+    start_idx: int,
+    forward_distance_range: tuple[float, float],
+) -> list[tuple[float, float]]:
+    """Return local obstacle centers for controlled stuck-recovery templates."""
+    template = rng.choice(("front_block", "front_left_block", "front_right_block"))
+    distance = float(rng.uniform(*forward_distance_range))
+    path_xy = path["xy"]
+    base_xy = path_xy[start_idx]
+    yaw = path["yaw"][start_idx]
+    tangent = torch.stack([torch.cos(yaw), torch.sin(yaw)])
+    normal = torch.stack([-torch.sin(yaw), torch.cos(yaw)])
+
+    lateral_offsets = {
+        "front_block": (0.0,),
+        "front_left_block": (0.28,),
+        "front_right_block": (-0.28,),
+    }[template]
+    positions = []
+    for offset in lateral_offsets:
+        xy = base_xy + distance * tangent + float(offset) * normal
+        positions.append((float(xy[0].item()), float(xy[1].item())))
+    return positions
 
 
 def _obstacles_are_feasible(obstacles: list[tuple[float, float, float]], corridor_half_width: float) -> bool:
@@ -290,6 +338,8 @@ def reset_local_nav_task(
     obstacle_spacing: float = 0.55,
     obstacle_start_clearance: float = 0.9,
     obstacle_goal_clearance: float = 0.9,
+    obstacle_mode: str = "random_square",
+    recover_obstacle_distance_range: tuple[float, float] = (0.6, 1.0),
     contact_memory_num_sectors: int = 8,
     contact_memory_decay: float = 0.995,
 ):
@@ -372,20 +422,32 @@ def reset_local_nav_task(
         env._local_nav_cached_track = None
         # Reset contact memory state for this episode.
         env._contact_memory_world[env_id] = 0.0
+        env._contact_memory_last_update_step[env_id] = -1
+        env._contact_memory_last_reset_step[env_id] = -1
 
         if not disable_obstacles:
-            local_obstacles = _sample_square_obstacles(
-                rng=rng,
-                path=path,
-                num_obstacles=num_obstacles,
-                square_x=square_x,
-                square_y=square_y,
-                min_clearance_to_path=obstacle_path_clearance,
-                min_clearance_between=obstacle_spacing,
-                start_clearance=obstacle_start_clearance,
-                goal_clearance=obstacle_goal_clearance,
-                max_sample_tries=max_obstacle_trials * max(32, num_obstacles),
-            )
+            if obstacle_mode == "recover_template":
+                local_obstacles = _sample_recover_template_obstacles(
+                    rng=rng,
+                    path=path,
+                    start_idx=start_idx,
+                    forward_distance_range=recover_obstacle_distance_range,
+                )
+            elif obstacle_mode == "random_square":
+                local_obstacles = _sample_square_obstacles(
+                    rng=rng,
+                    path=path,
+                    num_obstacles=num_obstacles,
+                    square_x=square_x,
+                    square_y=square_y,
+                    min_clearance_to_path=obstacle_path_clearance,
+                    min_clearance_between=obstacle_spacing,
+                    start_clearance=obstacle_start_clearance,
+                    goal_clearance=obstacle_goal_clearance,
+                    max_sample_tries=max_obstacle_trials * max(32, num_obstacles),
+                )
+            else:
+                raise ValueError(f"Unsupported obstacle_mode: {obstacle_mode}")
             for obs_idx, (obs_x, obs_y) in enumerate(local_obstacles[:num_obstacles]):
                 obs_xy_world = torch.tensor([obs_x, obs_y], device=device) + env.scene.env_origins[env_id, :2]
                 object_states[local_idx, obs_idx, 0:3] = torch.tensor(

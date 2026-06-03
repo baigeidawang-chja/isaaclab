@@ -34,6 +34,10 @@ class WorldModel(nn.Module):
         self._config = config
         self._use_stuck_head = bool(getattr(config, "use_stuck_head", False))
         shapes = {k: tuple(v.shape) for k, v in obs_space.spaces.items()}
+        self._use_sector_contact_head = (
+            bool(getattr(config, "use_sector_contact_head", False))
+            and "contact_memory_label" in shapes
+        )
         self.encoder = networks.MultiEncoder(shapes, **config.encoder)
         self.embed_size = self.encoder.outdim
         self.dynamics = networks.RSSM(
@@ -98,6 +102,19 @@ class WorldModel(nn.Module):
                 device=config.device,
                 name="Stuck",
             )
+        if self._use_sector_contact_head:
+            self.heads["sector_contact"] = networks.MLP(
+                feat_size,
+                shapes["contact_memory_label"],
+                config.sector_contact_head["layers"],
+                config.units,
+                config.act,
+                config.norm,
+                dist="binary",
+                outscale=config.sector_contact_head["outscale"],
+                device=config.device,
+                name="SectorContact",
+            )
         for name in config.grad_heads:
             assert name in self.heads, name
         self._model_opt = tools.Optimizer(
@@ -120,6 +137,8 @@ class WorldModel(nn.Module):
         )
         if self._use_stuck_head:
             self._scales["stuck"] = config.stuck_head["loss_scale"]
+        if self._use_sector_contact_head:
+            self._scales["sector_contact"] = config.sector_contact_head["loss_scale"]
 
     def _train(self, data):
         # action (batch_size, batch_length, act_dim)
@@ -176,6 +195,15 @@ class WorldModel(nn.Module):
             metrics["stuck_pred_mean"] = to_np(torch.mean(stuck_prob))
             metrics["stuck_label_mean"] = to_np(torch.mean(stuck_label))
             metrics["stuck_acc"] = to_np(torch.mean((stuck_pred == stuck_label).float()))
+        if self._use_sector_contact_head and "sector_contact" in preds and "sector_contact" in data:
+            contact_prob = preds["sector_contact"].mean
+            contact_label = data["sector_contact"]
+            if contact_prob.shape != contact_label.shape:
+                contact_label = contact_label.reshape(contact_prob.shape)
+            contact_pred = (contact_prob > 0.5).float()
+            metrics["sector_contact_pred_mean"] = to_np(torch.mean(contact_prob))
+            metrics["sector_contact_label_mean"] = to_np(torch.mean(contact_label))
+            metrics["sector_contact_acc"] = to_np(torch.mean((contact_pred == contact_label).float()))
         metrics["kl_free"] = kl_free
         metrics["dyn_scale"] = dyn_scale
         metrics["rep_scale"] = rep_scale
@@ -215,8 +243,11 @@ class WorldModel(nn.Module):
         # 'is_terminal' is necesarry to train cont_head
         assert "is_terminal" in obs
         obs["cont"] = (1.0 - obs["is_terminal"]).unsqueeze(-1)
-        if self._use_stuck_head and "stuck_label" in obs:
-            obs["stuck"] = obs["stuck_label"]
+        for key, value in list(obs.items()):
+            if key.endswith("_label"):
+                obs[key[: -len("_label")]] = value
+        if "contact_memory_label" in obs:
+            obs["sector_contact"] = obs["contact_memory_label"]
         return obs
 
     def video_pred(self, data):

@@ -21,6 +21,22 @@ class IsaacLabVectorBackend:
         if self._num_envs < 1:
             raise ValueError(f"Invalid num_envs: {self._num_envs}")
 
+        self._label_keys = frozenset(
+            (
+                "stuck_label",
+                "mode_label",
+                "contact_memory_label",
+                "interaction_label",
+            )
+        )
+        self._default_label_shapes = {
+            "stuck_label": (1,),
+            "mode_label": (3,),
+            "contact_memory_label": (8,),
+            "interaction_label": (36,),
+        }
+        self._label_shapes = {}
+
         self._action_space = self._build_action_space()
         self._obs_space = self._build_observation_space()
 
@@ -167,6 +183,19 @@ class IsaacLabVectorBackend:
     def _build_observation_space(self):
         sample, _ = self._env.reset()
         obs_dim = int(self._flatten_obs(sample).shape[-1])
+        label_spaces = {}
+        label_shapes = dict(self._default_label_shapes)
+        if isinstance(sample, dict):
+            for key, value in sample.items():
+                if not self._is_label_key(key):
+                    continue
+                arr = self._to_numpy(value).reshape(self._num_envs, -1)
+                label_shapes[key] = tuple(arr.shape[1:])
+        for key, shape in sorted(label_shapes.items()):
+            label_spaces[key] = gym.spaces.Box(
+                low=-np.inf, high=np.inf, shape=shape, dtype=np.float32
+            )
+        self._label_shapes = label_shapes
         return gym.spaces.Dict(
             {
                 "obs": gym.spaces.Box(
@@ -174,21 +203,23 @@ class IsaacLabVectorBackend:
                 ),
                 "is_first": gym.spaces.Box(low=0, high=1, shape=(), dtype=np.bool_),
                 "is_terminal": gym.spaces.Box(low=0, high=1, shape=(), dtype=np.bool_),
-                "stuck_label": gym.spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float32),
+                **label_spaces,
             }
         )
 
     def _process_obs(self, obs_raw, reward, is_first, is_terminal):
         vec = self._flatten_obs(obs_raw).astype(np.float32)
-        if isinstance(obs_raw, dict) and "stuck_label" in obs_raw:
-            stuck = self._to_numpy(obs_raw["stuck_label"]).reshape(self._num_envs, -1).astype(np.float32)
-        else:
-            stuck = np.zeros((self._num_envs, 1), dtype=np.float32)
+        labels = {}
+        for key, shape in self._label_shapes.items():
+            if isinstance(obs_raw, dict) and key in obs_raw:
+                labels[key] = self._to_numpy(obs_raw[key]).reshape(self._num_envs, -1).astype(np.float32)
+            else:
+                labels[key] = np.zeros((self._num_envs, int(np.prod(shape))), dtype=np.float32)
         return {
             "obs": vec,
             "is_first": np.asarray(is_first, dtype=np.bool_),
             "is_terminal": np.asarray(is_terminal, dtype=np.bool_),
-            "stuck_label": stuck,
+            **labels,
             "obs_reward": np.asarray(reward, dtype=np.float32)[:, None],
         }
 
@@ -197,8 +228,8 @@ class IsaacLabVectorBackend:
         if isinstance(obs_raw, dict):
             keys = sorted(obs_raw.keys())
             for key in keys:
-                if key == "stuck_label":
-                    # Keep stuck label as a separate supervision target to avoid
+                if self._is_label_key(key):
+                    # Keep supervision labels separate to avoid
                     # leaking ground-truth directly into the main obs embedding.
                     continue
                 arr = self._to_numpy(obs_raw[key])
@@ -217,6 +248,9 @@ class IsaacLabVectorBackend:
         if not chunks:
             return np.zeros((self._num_envs, 1), dtype=np.float32)
         return np.concatenate(chunks, axis=1)
+
+    def _is_label_key(self, key):
+        return key in self._label_keys or key.endswith("_label")
 
     @staticmethod
     def _to_numpy(x):

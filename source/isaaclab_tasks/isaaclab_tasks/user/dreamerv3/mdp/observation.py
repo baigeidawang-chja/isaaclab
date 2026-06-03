@@ -100,17 +100,44 @@ def _ensure_contact_memory_buffers(
     if (not hasattr(env, "_contact_memory_world")) or (env._contact_memory_world.shape[-1] != num_sectors):
         env._contact_memory_world = torch.zeros((env.num_envs, num_sectors), dtype=torch.float32, device=device)
         env._contact_memory_initial_yaw = env.scene["robot"].data.heading_w.detach().clone()
+        env._contact_memory_last_update_step = torch.full((env.num_envs,), -1, dtype=torch.long, device=device)
+        env._contact_memory_last_reset_step = torch.full((env.num_envs,), -1, dtype=torch.long, device=device)
+    else:
+        if (
+            not hasattr(env, "_contact_memory_last_update_step")
+            or env._contact_memory_last_update_step.shape[0] != env.num_envs
+        ):
+            env._contact_memory_last_update_step = torch.full((env.num_envs,), -1, dtype=torch.long, device=device)
+        if (
+            not hasattr(env, "_contact_memory_last_reset_step")
+            or env._contact_memory_last_reset_step.shape[0] != env.num_envs
+        ):
+            env._contact_memory_last_reset_step = torch.full((env.num_envs,), -1, dtype=torch.long, device=device)
+
+
+def _get_contact_memory_current_step(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """Return per-env episode step used to guard contact-memory updates."""
+    device = env.device
+    if hasattr(env, "episode_length_buf"):
+        return env.episode_length_buf.to(device=device, dtype=torch.long)
+    if hasattr(env, "_local_nav_episode_steps"):
+        return env._local_nav_episode_steps.to(device=device, dtype=torch.long)
+    step = int(getattr(env, "common_step_counter", 0))
+    return torch.full((env.num_envs,), step, dtype=torch.long, device=device)
 
 
 def _reset_contact_memory_if_new_episode(env: ManagerBasedRLEnv):
     """Reset memory for envs that have just started a new episode."""
-    if not hasattr(env, "_local_nav_episode_steps"):
-        return
-    step_ctr = env._local_nav_episode_steps
-    reset_mask = step_ctr <= 1
+    step_ctr = _get_contact_memory_current_step(env)
+    reset_mask = (step_ctr <= 1) & (
+        (env._contact_memory_last_update_step > step_ctr)
+        | (env._contact_memory_last_reset_step < 0)
+    )
     if reset_mask.any():
         env._contact_memory_world[reset_mask] = 0.0
         env._contact_memory_initial_yaw[reset_mask] = env.scene["robot"].data.heading_w[reset_mask].detach().clone()
+        env._contact_memory_last_update_step[reset_mask] = -1
+        env._contact_memory_last_reset_step[reset_mask] = step_ctr[reset_mask]
 
 
 def _update_contact_memory_world_from_6sensors(
@@ -119,14 +146,17 @@ def _update_contact_memory_world_from_6sensors(
     robot_yaw_local: torch.Tensor,  # [N]
     decay: float,
     num_sectors: int,
+    update_mask: torch.Tensor,
 ):
     """Update local-world memory from current 6-direction contacts."""
-    env._contact_memory_world.mul_(float(decay))
+    if not update_mask.any():
+        return
+    env._contact_memory_world[update_mask] *= float(decay)
     contact_angles = torch.tensor(CONTACT_SENSOR_ANGLES_DEG, dtype=torch.float32, device=env.device) * (math.pi / 180.0)
     env_ids = torch.arange(env.num_envs, device=env.device)
 
     for k in range(min(6, contact_now_6.shape[1])):
-        active = contact_now_6[:, k] > 0.5
+        active = (contact_now_6[:, k] > 0.5) & update_mask
         if not active.any():
             continue
         angle_world = robot_yaw_local + contact_angles[k]
@@ -165,19 +195,24 @@ def get_contact_memory_body_label(
     _ensure_contact_memory_buffers(env, num_sectors=num_sectors)
     _reset_contact_memory_if_new_episode(env)
 
+    current_step = _get_contact_memory_current_step(env)
+    update_mask = current_step != env._contact_memory_last_update_step
     robot_yaw = env.scene["robot"].data.heading_w
     robot_yaw_local = torch.atan2(
         torch.sin(robot_yaw - env._contact_memory_initial_yaw),
         torch.cos(robot_yaw - env._contact_memory_initial_yaw),
     )
-    contact_now_6 = _get_contact_now_6(env, force_threshold=force_threshold)
-    _update_contact_memory_world_from_6sensors(
-        env,
-        contact_now_6=contact_now_6,
-        robot_yaw_local=robot_yaw_local,
-        decay=decay,
-        num_sectors=num_sectors,
-    )
+    if update_mask.any():
+        contact_now_6 = _get_contact_now_6(env, force_threshold=force_threshold)
+        _update_contact_memory_world_from_6sensors(
+            env,
+            contact_now_6=contact_now_6,
+            robot_yaw_local=robot_yaw_local,
+            decay=decay,
+            num_sectors=num_sectors,
+            update_mask=update_mask,
+        )
+        env._contact_memory_last_update_step[update_mask] = current_step[update_mask]
     return _world_memory_to_body_memory(
         env._contact_memory_world,
         robot_yaw_local=robot_yaw_local,
