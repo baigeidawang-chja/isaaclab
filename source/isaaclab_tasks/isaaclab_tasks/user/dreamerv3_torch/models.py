@@ -201,9 +201,20 @@ class WorldModel(nn.Module):
             if contact_prob.shape != contact_label.shape:
                 contact_label = contact_label.reshape(contact_prob.shape)
             contact_pred = (contact_prob > 0.5).float()
+            contact_label_bin = (contact_label > 0.5).float()
+            eps = 1e-6
+
+            tp = torch.sum(contact_pred * contact_label_bin)
+            fp = torch.sum(contact_pred * (1.0 - contact_label_bin))
+            fn = torch.sum((1.0 - contact_pred) * contact_label_bin)
+
+            precision = tp / (tp + fp + eps)
+            recall = tp / (tp + fn + eps)
             metrics["sector_contact_pred_mean"] = to_np(torch.mean(contact_prob))
             metrics["sector_contact_label_mean"] = to_np(torch.mean(contact_label))
-            metrics["sector_contact_acc"] = to_np(torch.mean((contact_pred == contact_label).float()))
+            metrics["sector_contact_acc"] = to_np(torch.mean((contact_pred == contact_label_bin).float()))
+            metrics["sector_contact_precision"] = to_np(precision)
+            metrics["sector_contact_recall"] = to_np(recall)
         metrics["kl_free"] = kl_free
         metrics["dyn_scale"] = dyn_scale
         metrics["rep_scale"] = rep_scale

@@ -206,7 +206,9 @@ class ObservationsCfg:
 
         contact_memory_label = ObsTerm(
             func=observation.get_contact_memory_body_label,
-            params={"num_sectors": 8},
+            params={"num_sectors": 8,
+                    "force_threshold": 1.0,
+                    },
         )
 
         # local_tracking_state = ObsTerm(func=observation.get_local_tracking_state)
@@ -419,7 +421,8 @@ class MyCarRecoverEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 0
         self.events.reset_local_nav.params["disable_obstacles"] = False
-        self.events.reset_local_nav.params["obstacle_mode"] = "recover_template"
+        self.e
+        vents.reset_local_nav.params["obstacle_mode"] = "recover_template"
         self.events.reset_local_nav.params["recover_obstacle_distance_range"] = (0.6, 1.0)
         self.events.reset_local_nav.params["lateral_offset_range"] = (-0.04, 0.04)
         self.events.reset_local_nav.params["heading_offset_range"] = (-0.06, 0.06)
