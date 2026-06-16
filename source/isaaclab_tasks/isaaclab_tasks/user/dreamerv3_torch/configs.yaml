@@ -195,13 +195,13 @@ isaaclab_8gb:
   precision: 16
   video_pred_log: False
   eval_episode_num: 0
-  batch_size: 32
+  batch_size: 8
   batch_length: 32
-  train_ratio: 160
-  pretrain: 40
-  imag_horizon: 20
-  dyn_hidden: 448
-  dyn_deter: 448
-  units: 448
-  encoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 4, mlp_units: 576}
-  decoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 4, mlp_units: 576}
+  train_ratio: 80
+  pretrain: 20
+  imag_horizon: 8
+  dyn_hidden: 256
+  dyn_deter: 256
+  units: 256
+  encoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}
+  decoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}

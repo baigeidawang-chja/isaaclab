@@ -203,9 +203,21 @@ def _sample_recover_template_obstacles(
     path: dict[str, torch.Tensor],
     start_idx: int,
     forward_distance_range: tuple[float, float],
+    template_set: str = "basic",
 ) -> list[tuple[float, float]]:
     """Return local obstacle centers for controlled stuck-recovery templates."""
-    template = rng.choice(("front_block", "front_left_block", "front_right_block"))
+    if template_set == "two_point":
+        templates = (
+            "front_block",
+            "front_left_block",
+            "front_right_block",
+            "rear_limited",
+            "narrow_gap",
+            "front_double_offset_gap",
+        )
+    else:
+        templates = ("front_block", "front_left_block", "front_right_block")
+    template = rng.choice(templates)
     distance = float(rng.uniform(*forward_distance_range))
     path_xy = path["xy"]
     base_xy = path_xy[start_idx]
@@ -213,16 +225,39 @@ def _sample_recover_template_obstacles(
     tangent = torch.stack([torch.cos(yaw), torch.sin(yaw)])
     normal = torch.stack([-torch.sin(yaw), torch.cos(yaw)])
 
-    lateral_offsets = {
-        "front_block": (0.0,),
-        "front_left_block": (0.28,),
-        "front_right_block": (-0.28,),
-    }[template]
+    if template == "rear_limited":
+        specs = ((distance, 0.0), (-0.45, 0.0))
+    elif template == "narrow_gap":
+        gap_half = float(rng.uniform(0.28, 0.38))
+        specs = ((distance, gap_half + 0.22), (distance, -(gap_half + 0.22)))
+    elif template == "front_double_offset_gap":
+        gap_side = -1.0 if rng.random() < 0.5 else 1.0
+        specs = ((distance, -0.24 * gap_side), (distance + 0.18, 0.38 * gap_side))
+    else:
+        lateral_offsets = {
+            "front_block": (0.0,),
+            "front_left_block": (0.28,),
+            "front_right_block": (-0.28,),
+        }[template]
+        specs = tuple((distance, offset) for offset in lateral_offsets)
     positions = []
-    for offset in lateral_offsets:
-        xy = base_xy + distance * tangent + float(offset) * normal
+    for forward, offset in specs:
+        xy = base_xy + float(forward) * tangent + float(offset) * normal
         positions.append((float(xy[0].item()), float(xy[1].item())))
     return positions
+
+
+def _make_two_point_path(
+    device: torch.device,
+    goal_distance_range: tuple[float, float],
+    goal_lateral_range: tuple[float, float],
+    rng: np.random.Generator,
+) -> dict[str, torch.Tensor]:
+    """Create a short per-env start-goal path for local recovery training."""
+    goal_x = float(rng.uniform(*goal_distance_range))
+    goal_y = float(rng.uniform(*goal_lateral_range))
+    path = _build_dense_path([(0.0, 0.0), (goal_x, goal_y)], step=None)
+    return {key: value.to(device=device) for key, value in path.items()}
 
 
 def _obstacles_are_feasible(obstacles: list[tuple[float, float, float]], corridor_half_width: float) -> bool:
@@ -327,6 +362,9 @@ def reset_local_nav_task(
     start_speed_range: tuple[float, float] = (0.0, 0.2),
     max_obstacle_trials: int = 32,
     fixed_path_id: int | None = None,
+    path_mode: str = "library",
+    goal_distance_range: tuple[float, float] = (1.5, 3.0),
+    goal_lateral_range: tuple[float, float] = (-0.3, 0.3),
     disable_obstacles: bool = False,
     debug_vis: bool = False,
     debug_vis_num_points: int = 16,
@@ -340,6 +378,7 @@ def reset_local_nav_task(
     obstacle_goal_clearance: float = 0.9,
     obstacle_mode: str = "random_square",
     recover_obstacle_distance_range: tuple[float, float] = (0.6, 1.0),
+    recover_template_set: str = "basic",
     contact_memory_num_sectors: int = 8,
     contact_memory_decay: float = 0.995,
 ):
@@ -380,7 +419,20 @@ def reset_local_nav_task(
 
     for local_idx, env_id_tensor in enumerate(env_ids):
         env_id = int(env_id_tensor.item())
-        path_id = 0 if fixed_path_id is None else int(fixed_path_id)
+        if path_mode == "two_point":
+            while len(env._local_nav_path_library) <= env_id:
+                env._local_nav_path_library.append(_make_two_point_path(device, goal_distance_range, goal_lateral_range, rng))
+            env._local_nav_path_library[env_id] = _make_two_point_path(
+                device,
+                goal_distance_range=goal_distance_range,
+                goal_lateral_range=goal_lateral_range,
+                rng=rng,
+            )
+            path_id = env_id
+        elif path_mode == "library":
+            path_id = 0 if fixed_path_id is None else int(fixed_path_id)
+        else:
+            raise ValueError(f"Unsupported path_mode: {path_mode}")
         path = env._local_nav_path_library[path_id]
         goal_idx = len(path["s"]) - 1
         start_idx = 0
@@ -432,6 +484,7 @@ def reset_local_nav_task(
                     path=path,
                     start_idx=start_idx,
                     forward_distance_range=recover_obstacle_distance_range,
+                    template_set=recover_template_set,
                 )
             elif obstacle_mode == "random_square":
                 local_obstacles = _sample_square_obstacles(

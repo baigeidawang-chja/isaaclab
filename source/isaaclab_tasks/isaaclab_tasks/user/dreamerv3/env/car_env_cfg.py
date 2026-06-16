@@ -82,8 +82,10 @@ class MySceneCfg(InteractiveSceneCfg):
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(OBSTACLE_POSITIONS[i][0], OBSTACLE_POSITIONS[i][1], 0.5)
                 ),
-                spawn=sim_utils.CuboidCfg(
-                    size=(0.2, 0.2, 7.0),
+                spawn=sim_utils.CylinderCfg(
+                    # size=(0.2, 0.2, 7.0),
+                    radius=0.2,
+                    height=3.0,
                     rigid_props=sim_utils.RigidBodyPropertiesCfg(
                         kinematic_enabled=True,  # static obstacle (won't be pushed)
                     ),
@@ -421,8 +423,7 @@ class MyCarRecoverEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 0
         self.events.reset_local_nav.params["disable_obstacles"] = False
-        self.e
-        vents.reset_local_nav.params["obstacle_mode"] = "recover_template"
+        self.events.reset_local_nav.params["obstacle_mode"] = "recover_template"
         self.events.reset_local_nav.params["recover_obstacle_distance_range"] = (0.6, 1.0)
         self.events.reset_local_nav.params["lateral_offset_range"] = (-0.04, 0.04)
         self.events.reset_local_nav.params["heading_offset_range"] = (-0.06, 0.06)
