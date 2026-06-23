@@ -177,6 +177,38 @@ class ActionsCfg:
         no_reverse=False,
     )
 
+
+@configclass
+class AmphibiousActionsCfg(ActionsCfg):
+    """Action specs for amphibious transition with reserved thruster command."""
+
+    throttle_steer = CarVWActionCfg(
+        wheel_joint_names=[
+            "joint_front_right_wheel_link_wheel",
+            "joint_front_left_wheel_link_wheel",
+            "joint_back_right_wheel_link_wheel",
+            "joint_back_left_wheel_link_wheel"
+        ],
+        steering_joint_names=[
+            "joint_front_right_steer",
+            "joint_front_left_steer",
+        ],
+        base_length=2.035 / 5,
+        base_width=1.1673 / 5,
+        wheel_radius=0.035,
+        scale=(1.2, 0.6, 1.0),
+        offset=(0.0, 0.0, 0.0),
+        bounding_strategy="clip",
+        use_rate_limit=True,
+        max_speed_rate=0.2,
+        max_steer_rate=0.3,
+        asset_name="robot",
+        no_reverse=False,
+        use_thruster_action=True,
+        thruster_cmd_limit=1.0,
+    )
+
+
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
@@ -233,14 +265,6 @@ class ObservationsCfg:
                     },
         )
 
-        medium_state_label = ObsTerm(
-            func=observation.medium_state_label,
-            params={
-                "asset_cfg": SceneEntityCfg("robot"),
-                **MEDIUM_STATE_PARAMS,
-            },
-        )
-
         # local_tracking_state = ObsTerm(func=observation.get_local_tracking_state)
 
         # Current target + next waypoint for earlier turn preparation in S-curves.
@@ -261,18 +285,29 @@ class ObservationsCfg:
 
 
 @configclass
+class AmphibiousObservationsCfg(ObservationsCfg):
+    """Observation specs for amphibious dynamics-state estimation."""
+
+    @configclass
+    class PolicyCfg(ObservationsCfg.PolicyCfg):
+        """Keep only medium privileged labels; no stuck/contact labels."""
+
+        stuck_label = None
+        contact_memory_label = None
+        medium_state_label = ObsTerm(
+            func=observation.medium_state_label,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                **MEDIUM_STATE_PARAMS,
+            },
+        )
+
+    policy: PolicyCfg = PolicyCfg()
+
+
+@configclass
 class EventCfg:
     """Configuration for events."""
-
-    apply_hydrodynamics = EventTerm(
-        func=hydrodynamics.apply_hydrodynamics,
-        mode="interval",
-        interval_range_s=(0.0, 0.0),
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
-            **HYDRODYNAMICS_PARAMS,
-        },
-    )
 
     reset_local_nav = EventTerm(
         func=reset_local_nav_task,
@@ -307,6 +342,23 @@ class EventCfg:
         params={
             "position_range": (1.0, 1.0),
             "velocity_range": (0.0, 0.0),
+        },
+    )
+
+
+@configclass
+class AmphibiousEventCfg(EventCfg):
+    """Events for amphibious transition dynamics."""
+
+    apply_hydrodynamics = EventTerm(
+        func=hydrodynamics.apply_hydrodynamics,
+        mode="interval",
+        interval_range_s=(0.0, 0.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
+            **HYDRODYNAMICS_PARAMS,
+            "debug": True,
+            "debug_every": 100,
         },
     )
 
@@ -482,6 +534,35 @@ class MyCarRecoverEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.terminations.target_too_far.params["max_target_distance"] = 7.0
 
 
+class MyCarAmphibiousEnvCfg(LocomotionVelocityRoughEnvCfg):
+    """Low-order amphibious transition task for medium-state estimation."""
+
+    observations: AmphibiousObservationsCfg = AmphibiousObservationsCfg()
+    actions: AmphibiousActionsCfg = AmphibiousActionsCfg()
+    events: AmphibiousEventCfg = AmphibiousEventCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.sim.device = "cuda:0"
+        self.episode_length_s = 20.0
+
+        self.events.reset_local_nav.params["fixed_path_id"] = 0
+        self.events.reset_local_nav.params["disable_obstacles"] = True
+        self.events.reset_local_nav.params["lateral_offset_range"] = (-0.03, 0.03)
+        self.events.reset_local_nav.params["heading_offset_range"] = (-0.04, 0.04)
+        self.events.reset_local_nav.params["start_speed_range"] = (0.0, 0.06)
+        self.events.reset_local_nav.params["waypoint_reach_thresh"] = 0.45
+
+        self.rewards.waypoint_reached.weight = 2.0
+        self.rewards.waypoint_reached.params["bonus"] = 0.5
+        self.rewards.speed_tracking.weight = 0.15
+        self.rewards.speed_tracking.params["target_speed"] = 0.35
+        self.rewards.heading_align.weight = 0.05
+        self.rewards.time_penalty.params["penalty_per_step"] = -0.001
+
+        self.terminations.target_too_far.params["max_target_distance"] = 4.0
+
+
 class MyCarRoughEnvCfg_PLAY(LocomotionVelocityRoughEnvCfg):
     def __post_init__(self):
         super().__post_init__()
@@ -497,6 +578,13 @@ class MyCarSimpleEnvCfg_PLAY(MyCarSimpleEnvCfg):
 
 
 class MyCarRecoverEnvCfg_PLAY(MyCarRecoverEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 16
+        self.scene.env_spacing = 0
+
+
+class MyCarAmphibiousEnvCfg_PLAY(MyCarAmphibiousEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.num_envs = 16

@@ -18,6 +18,8 @@ def apply_hydrodynamics(
     yaw_damping: float = 1.5,
     thruster_gain: float = 12.0,
     thruster_force_scale: float = 1.0,
+    debug: bool = False,
+    debug_every: int = 100,
     **medium_kwargs,
 ):
     """Apply simple body-frame water drag, yaw damping, and optional thruster force.
@@ -52,6 +54,10 @@ def apply_hydrodynamics(
         thruster_u = thruster_cmd[env_ids].to(device=device, dtype=torch.float32).reshape(-1)
     thrust = float(thruster_force_scale) * eta_thruster * float(thruster_gain) * thruster_u * thruster_u.abs()
     force_b[:, 0] = force_b[:, 0] + thrust
+    force_norm = torch.linalg.norm(force_b, dim=-1)
+    if not hasattr(env, "_hydro_force_norm"):
+        env._hydro_force_norm = torch.zeros(env.num_envs, device=device, dtype=torch.float32)
+    env._hydro_force_norm[env_ids] = force_norm
 
     torque_b = torch.zeros_like(force_b)
     torque_b[:, 2] = -drag_scale.squeeze(-1) * float(yaw_damping) * yaw_rate
@@ -66,3 +72,19 @@ def apply_hydrodynamics(
     forces = force_b[:, None, :].repeat(1, num_bodies, 1)
     torques = torque_b[:, None, :].repeat(1, num_bodies, 1)
     asset.set_external_force_and_torque(forces, torques, body_ids=body_ids, env_ids=env_ids)
+
+    if debug:
+        count = int(getattr(env, "_hydro_debug_count", 0)) + 1
+        env._hydro_debug_count = count
+        every = max(1, int(debug_every))
+        if count % every == 0 and len(env_ids) > 0:
+            local_idx = 0
+            env_id = int(env_ids[local_idx].item())
+            print(
+                "[HYDRO DEBUG] "
+                f"step={count} env={env_id} "
+                f"lambda={state['lambda_medium'][env_id].detach().item():.3f} "
+                f"drag_scale={state['drag_scale'][env_id].detach().item():.3f} "
+                f"thruster_cmd={thruster_u[local_idx].detach().item():.3f} "
+                f"force_norm={force_norm[local_idx].detach().item():.3f}"
+            )
