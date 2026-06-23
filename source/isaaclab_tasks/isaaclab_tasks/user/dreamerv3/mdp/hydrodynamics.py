@@ -13,6 +13,12 @@ def apply_hydrodynamics(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     x_start: float = 1.0,
     x_end: float = 3.0,
+    wheel_threshold: float = 0.55,
+    wheel_sharpness: float = 0.12,
+    thruster_threshold: float = 0.35,
+    thruster_sharpness: float = 0.12,
+    drag_min: float = 0.0,
+    drag_max: float = 1.0,
     linear_drag: tuple[float, float, float] = (8.0, 14.0, 2.0),
     quadratic_drag: tuple[float, float, float] = (2.0, 4.0, 0.5),
     yaw_damping: float = 1.5,
@@ -20,7 +26,6 @@ def apply_hydrodynamics(
     thruster_force_scale: float = 1.0,
     debug: bool = False,
     debug_every: int = 100,
-    **medium_kwargs,
 ):
     """Apply simple body-frame water drag, yaw damping, and optional thruster force.
 
@@ -28,6 +33,7 @@ def apply_hydrodynamics(
     no buoyancy, no fluid surface mesh, and no CFD. Forces are written into
     Isaac Lab's external wrench buffer and applied by the simulator step.
     """
+    print("[HYDRO CALLED]")
     asset = env.scene[asset_cfg.name]
     device = asset.device
     if env_ids is None:
@@ -37,7 +43,18 @@ def apply_hydrodynamics(
     else:
         env_ids = env_ids.to(device=device, dtype=torch.long)
 
-    state = compute_medium_state(env, asset_cfg=SceneEntityCfg(asset_cfg.name), x_start=x_start, x_end=x_end, **medium_kwargs)
+    state = compute_medium_state(
+        env,
+        asset_cfg=SceneEntityCfg(asset_cfg.name),
+        x_start=x_start,
+        x_end=x_end,
+        wheel_threshold=wheel_threshold,
+        wheel_sharpness=wheel_sharpness,
+        thruster_threshold=thruster_threshold,
+        thruster_sharpness=thruster_sharpness,
+        drag_min=drag_min,
+        drag_max=drag_max,
+    )
     drag_scale = state["drag_scale"][env_ids].unsqueeze(-1)
     eta_thruster = state["eta_thruster"][env_ids]
 

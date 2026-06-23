@@ -27,14 +27,9 @@ class IsaacLabVectorBackend:
                 "mode_label",
                 "contact_memory_label",
                 "interaction_label",
+                "medium_state_label",
             )
         )
-        self._default_label_shapes = {
-            "stuck_label": (1,),
-            "mode_label": (3,),
-            "contact_memory_label": (8,),
-            "interaction_label": (36,),
-        }
         self._label_shapes = {}
 
         self._action_space = self._build_action_space()
@@ -184,7 +179,7 @@ class IsaacLabVectorBackend:
         sample, _ = self._env.reset()
         obs_dim = int(self._flatten_obs(sample).shape[-1])
         label_spaces = {}
-        label_shapes = dict(self._default_label_shapes)
+        label_shapes = {}
         if isinstance(sample, dict):
             for key, value in sample.items():
                 if not self._is_label_key(key):

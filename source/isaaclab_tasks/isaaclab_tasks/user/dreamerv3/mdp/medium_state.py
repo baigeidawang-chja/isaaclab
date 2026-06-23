@@ -41,9 +41,31 @@ def compute_medium_state(
     }
 
 
-def medium_state_label(env, **kwargs) -> torch.Tensor:
+def medium_state_label(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    x_start: float = 1.0,
+    x_end: float = 3.0,
+    wheel_threshold: float = 0.55,
+    wheel_sharpness: float = 0.12,
+    thruster_threshold: float = 0.35,
+    thruster_sharpness: float = 0.12,
+    drag_min: float = 0.0,
+    drag_max: float = 1.0,
+) -> torch.Tensor:
     """Return privileged label [lambda, eta_wheel, eta_thruster, drag_scale]."""
-    state = compute_medium_state(env, **kwargs)
+    state = compute_medium_state(
+        env,
+        asset_cfg=asset_cfg,
+        x_start=x_start,
+        x_end=x_end,
+        wheel_threshold=wheel_threshold,
+        wheel_sharpness=wheel_sharpness,
+        thruster_threshold=thruster_threshold,
+        thruster_sharpness=thruster_sharpness,
+        drag_min=drag_min,
+        drag_max=drag_max,
+    )
     return torch.stack(
         [
             state["lambda_medium"],

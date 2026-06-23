@@ -353,12 +353,12 @@ class AmphibiousEventCfg(EventCfg):
     apply_hydrodynamics = EventTerm(
         func=hydrodynamics.apply_hydrodynamics,
         mode="interval",
-        interval_range_s=(0.0, 0.0),
+        interval_range_s=(0.01, 0.01),
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
             **HYDRODYNAMICS_PARAMS,
             "debug": True,
-            "debug_every": 100,
+            "debug_every": 1,
         },
     )
 
@@ -534,6 +534,7 @@ class MyCarRecoverEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.terminations.target_too_far.params["max_target_distance"] = 7.0
 
 
+@configclass
 class MyCarAmphibiousEnvCfg(LocomotionVelocityRoughEnvCfg):
     """Low-order amphibious transition task for medium-state estimation."""
 
@@ -545,6 +546,18 @@ class MyCarAmphibiousEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         self.sim.device = "cuda:0"
         self.episode_length_s = 20.0
+
+        self.observations.policy.stuck_label = None
+        self.observations.policy.contact_memory_label = None
+        self.observations.policy.mode_label = None
+        self.observations.policy.interaction_label = None
+        self.observations.policy.medium_state_label = ObsTerm(
+            func=observation.medium_state_label,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                **MEDIUM_STATE_PARAMS,
+            },
+        )
 
         self.events.reset_local_nav.params["fixed_path_id"] = 0
         self.events.reset_local_nav.params["disable_obstacles"] = True
@@ -584,6 +597,7 @@ class MyCarRecoverEnvCfg_PLAY(MyCarRecoverEnvCfg):
         self.scene.env_spacing = 0
 
 
+@configclass
 class MyCarAmphibiousEnvCfg_PLAY(MyCarAmphibiousEnvCfg):
     def __post_init__(self):
         super().__post_init__()

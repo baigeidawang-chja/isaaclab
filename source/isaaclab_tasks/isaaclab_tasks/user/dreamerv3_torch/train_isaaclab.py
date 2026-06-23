@@ -101,6 +101,16 @@ def main():
         )
         if hasattr(env_cfg, "seed"):
             env_cfg.seed = config.seed
+        print(
+            "[ISAACLAB ENV DEBUG] "
+            f"parsed_task={args.task} "
+            f"env_cfg={type(env_cfg).__module__}.{type(env_cfg).__name__} "
+            f"actions={type(env_cfg.actions).__name__} "
+            f"observations={type(env_cfg.observations).__name__} "
+            f"events={type(env_cfg.events).__name__}",
+            file=sys.stderr,
+            flush=True,
+        )
 
         if args.logdir:
             logdir = pathlib.Path(args.logdir).expanduser()
@@ -145,6 +155,16 @@ def main():
 
         def make_env():
             base = gym.make(args.task, cfg=env_cfg)
+            event_manager = getattr(getattr(base, "unwrapped", base), "event_manager", None)
+            if event_manager is not None:
+                active_terms = getattr(event_manager, "active_terms", None)
+                if active_terms is None:
+                    active_terms = getattr(event_manager, "_mode_term_names", None)
+                print(
+                    f"[ISAACLAB ENV DEBUG] event_manager_terms={active_terms}",
+                    file=sys.stderr,
+                    flush=True,
+                )
             backend, envs = make_isaaclab_env_proxies(
                 base, time_limit_steps=config.time_limit
             )
@@ -152,6 +172,13 @@ def main():
 
         print("Create IsaacLab env.")
         backend, train_envs = make_env()
+        print(f"[ISAACLAB ENV DEBUG] task={args.task}", file=sys.stderr, flush=True)
+        print(f"[ISAACLAB ENV DEBUG] action_space={train_envs[0].action_space}", file=sys.stderr, flush=True)
+        print(
+            f"[ISAACLAB ENV DEBUG] observation_space={train_envs[0].observation_space}",
+            file=sys.stderr,
+            flush=True,
+        )
         acts = train_envs[0].action_space
         config.num_actions = acts.n if hasattr(acts, "n") else acts.shape[0]
 
@@ -209,9 +236,18 @@ def main():
 
         if (logdir / "latest.pt").exists():
             checkpoint = torch.load(logdir / "latest.pt")
-            agent.load_state_dict(checkpoint["agent_state_dict"])
-            tools.recursively_load_optim_state_dict(agent, checkpoint["optims_state_dict"])
-            agent._should_pretrain._once = False
+            try:
+                agent.load_state_dict(checkpoint["agent_state_dict"])
+                tools.recursively_load_optim_state_dict(agent, checkpoint["optims_state_dict"])
+                agent._should_pretrain._once = False
+                print(f"[CHECKPOINT] Loaded checkpoint from {logdir / 'latest.pt'}")
+            except RuntimeError as exc:
+                print(
+                    "[CHECKPOINT] Skipping incompatible checkpoint "
+                    f"{logdir / 'latest.pt'}; starting fresh.\n{exc}",
+                    file=sys.stderr,
+                    flush=True,
+                )
 
         while agent._step < config.steps + config.eval_every:
             logger.write()
