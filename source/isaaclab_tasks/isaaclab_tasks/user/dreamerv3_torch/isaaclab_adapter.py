@@ -180,12 +180,11 @@ class IsaacLabVectorBackend:
         obs_dim = int(self._flatten_obs(sample).shape[-1])
         label_spaces = {}
         label_shapes = {}
-        if isinstance(sample, dict):
-            for key, value in sample.items():
-                if not self._is_label_key(key):
-                    continue
-                arr = self._to_numpy(value).reshape(self._num_envs, -1)
-                label_shapes[key] = tuple(arr.shape[1:])
+        for key, value in self._iter_obs_items(sample):
+            if not self._is_label_key(key):
+                continue
+            arr = self._to_numpy(value).reshape(self._num_envs, -1)
+            label_shapes[key] = tuple(arr.shape[1:])
         for key, shape in sorted(label_shapes.items()):
             label_spaces[key] = gym.spaces.Box(
                 low=-np.inf, high=np.inf, shape=shape, dtype=np.float32
@@ -206,8 +205,9 @@ class IsaacLabVectorBackend:
         vec = self._flatten_obs(obs_raw).astype(np.float32)
         labels = {}
         for key, shape in self._label_shapes.items():
-            if isinstance(obs_raw, dict) and key in obs_raw:
-                labels[key] = self._to_numpy(obs_raw[key]).reshape(self._num_envs, -1).astype(np.float32)
+            value = self._get_obs_item(obs_raw, key)
+            if value is not None:
+                labels[key] = self._to_numpy(value).reshape(self._num_envs, -1).astype(np.float32)
             else:
                 labels[key] = np.zeros((self._num_envs, int(np.prod(shape))), dtype=np.float32)
         return {
@@ -221,20 +221,15 @@ class IsaacLabVectorBackend:
     def _flatten_obs(self, obs_raw):
         chunks = []
         if isinstance(obs_raw, dict):
-            keys = sorted(obs_raw.keys())
-            for key in keys:
-                if self._is_label_key(key):
-                    # Keep supervision labels separate to avoid
-                    # leaking ground-truth directly into the main obs embedding.
-                    continue
-                arr = self._to_numpy(obs_raw[key])
-                if arr.ndim == 1:
-                    arr = np.repeat(arr[None, :], self._num_envs, axis=0)
-                else:
-                    arr = arr.reshape(self._num_envs, -1)
-                chunks.append(arr)
+            items = self._iter_obs_items(obs_raw)
         else:
-            arr = self._to_numpy(obs_raw)
+            items = [("obs", obs_raw)]
+        for key, value in items:
+            if self._is_label_key(key):
+                # Keep supervision labels separate to avoid leaking ground-truth
+                # directly into the main obs embedding.
+                continue
+            arr = self._to_numpy(value)
             if arr.ndim == 1:
                 arr = np.repeat(arr[None, :], self._num_envs, axis=0)
             else:
@@ -245,7 +240,28 @@ class IsaacLabVectorBackend:
         return np.concatenate(chunks, axis=1)
 
     def _is_label_key(self, key):
-        return key in self._label_keys or key.endswith("_label")
+        leaf = str(key).split("/")[-1]
+        return leaf in self._label_keys or leaf.endswith("_label")
+
+    def _iter_obs_items(self, obs_raw, prefix=""):
+        if not isinstance(obs_raw, dict):
+            return [(prefix or "obs", obs_raw)]
+        items = []
+        for key in sorted(obs_raw.keys()):
+            full_key = f"{prefix}/{key}" if prefix else str(key)
+            value = obs_raw[key]
+            if isinstance(value, dict):
+                items.extend(self._iter_obs_items(value, full_key))
+            else:
+                leaf = full_key.split("/")[-1]
+                items.append((leaf, value))
+        return items
+
+    def _get_obs_item(self, obs_raw, key):
+        for item_key, value in self._iter_obs_items(obs_raw):
+            if item_key == key:
+                return value
+        return None
 
     @staticmethod
     def _to_numpy(x):

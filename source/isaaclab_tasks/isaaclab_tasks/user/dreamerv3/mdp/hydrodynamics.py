@@ -33,7 +33,6 @@ def apply_hydrodynamics(
     no buoyancy, no fluid surface mesh, and no CFD. Forces are written into
     Isaac Lab's external wrench buffer and applied by the simulator step.
     """
-    print("[HYDRO CALLED]")
     asset = env.scene[asset_cfg.name]
     device = asset.device
     if env_ids is None:

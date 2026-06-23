@@ -24,6 +24,9 @@ def compute_medium_state(
     """
     asset = env.scene[asset_cfg.name]
     x = asset.data.root_pos_w[:, 0]
+    env_origins = getattr(env.scene, "env_origins", None)
+    if env_origins is not None:
+        x = x - env_origins[:, 0].to(device=x.device)
     denom = max(float(x_end) - float(x_start), 1e-6)
     lambda_medium = torch.clamp((x - float(x_start)) / denom, 0.0, 1.0)
 

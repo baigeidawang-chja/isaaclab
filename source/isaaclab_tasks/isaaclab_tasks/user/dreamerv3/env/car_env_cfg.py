@@ -358,7 +358,7 @@ class AmphibiousEventCfg(EventCfg):
             "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
             **HYDRODYNAMICS_PARAMS,
             "debug": True,
-            "debug_every": 1,
+            "debug_every": 100,
         },
     )
 
@@ -551,6 +551,7 @@ class MyCarAmphibiousEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.observations.policy.contact_memory_label = None
         self.observations.policy.mode_label = None
         self.observations.policy.interaction_label = None
+        self.observations.policy.concatenate_terms = False
         self.observations.policy.medium_state_label = ObsTerm(
             func=observation.medium_state_label,
             params={
