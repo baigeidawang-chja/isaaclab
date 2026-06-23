@@ -11,6 +11,7 @@ from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 from isaaclab.utils import math as math_utils
 
 from .events import _ensure_local_nav_buffers
+from .medium_state import medium_state_label
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv

@@ -9,6 +9,9 @@ from isaaclab.envs.mdp import *  # noqa: F401, F403
 
 from .actions import *  # noqa: F401, F403
 from .events import *  # noqa: F401, F403
+from .hydrodynamics import *  # noqa: F401, F403
+from .medium_state import *  # noqa: F401, F403
 from .observation import *  # noqa: F401, F403
+from .observations import *  # noqa: F401, F403
 from .rewards import *  # noqa: F401, F403
 from .terminations_user import *  # noqa: F401, F403

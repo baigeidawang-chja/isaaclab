@@ -165,6 +165,8 @@ class Car4WDActionCfg(ActionTermCfg):
 class CarVWAction(AckermannAction):
     def __init__(self, cfg: "CarVWActionCfg", env):
         super().__init__(cfg, env)
+        self._env = env
+        env._thruster_cmd = torch.zeros(env.num_envs, device=self.device, dtype=torch.float32)
         # Rate limits in physical units per second.
         self._use_rate_limit = bool(cfg.use_rate_limit)
         self._max_speed_rate = float(cfg.max_speed_rate)
@@ -174,6 +176,10 @@ class CarVWAction(AckermannAction):
             env.num_envs, self.action_dim, device=self.device, dtype=torch.float32
         )
         self._has_prev_processed_actions = False
+
+    @property
+    def action_dim(self) -> int:
+        return 3 if bool(getattr(self.cfg, "use_thruster_action", False)) else 2
 
     def process_actions(self, actions):
         self._raw_actions[:] = actions
@@ -186,6 +192,11 @@ class CarVWAction(AckermannAction):
 
         if self.cfg.no_reverse:
             processed[:, 0] = torch.clamp(processed[:, 0], min=0.0)
+        if self.action_dim >= 3:
+            processed[:, 2] = torch.clamp(processed[:, 2], min=-float(self.cfg.thruster_cmd_limit), max=float(self.cfg.thruster_cmd_limit))
+            self._env._thruster_cmd[:] = processed[:, 2]
+        else:
+            self._env._thruster_cmd.zero_()
 
         if self._use_rate_limit:
             if not self._has_prev_processed_actions:
@@ -258,3 +269,5 @@ class CarVWActionCfg(AckermannActionCfg):
     use_rate_limit: bool = True
     max_speed_rate: float = 1.0
     max_steer_rate: float = 1.2
+    use_thruster_action: bool = False
+    thruster_cmd_limit: float = 1.0

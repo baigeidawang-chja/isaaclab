@@ -38,7 +38,7 @@ import isaaclab.envs.mdp as mdp
 # Pre-defined configs
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
-from ..mdp import rewards, observation, terminations_user
+from ..mdp import hydrodynamics, rewards, observation, terminations_user
 from ..mdp.actions import Car4WDActionCfg, CarVWActionCfg
 from ..mdp.events import reset_local_nav_task
 from isaaclab_assets import CAR_CFG
@@ -55,6 +55,26 @@ OBSTACLE_POSITIONS = [
 ]
 
 NUM_OBSTACLES = len(OBSTACLE_POSITIONS)
+
+MEDIUM_STATE_PARAMS = {
+    "x_start": 1.0,
+    "x_end": 3.0,
+    "wheel_threshold": 0.55,
+    "wheel_sharpness": 0.12,
+    "thruster_threshold": 0.35,
+    "thruster_sharpness": 0.12,
+    "drag_min": 0.0,
+    "drag_max": 1.0,
+}
+
+HYDRODYNAMICS_PARAMS = {
+    **MEDIUM_STATE_PARAMS,
+    "linear_drag": (8.0, 14.0, 2.0),
+    "quadratic_drag": (2.0, 4.0, 0.5),
+    "yaw_damping": 1.5,
+    "thruster_gain": 12.0,
+    "thruster_force_scale": 1.0,
+}
 
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
@@ -213,6 +233,14 @@ class ObservationsCfg:
                     },
         )
 
+        medium_state_label = ObsTerm(
+            func=observation.medium_state_label,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                **MEDIUM_STATE_PARAMS,
+            },
+        )
+
         # local_tracking_state = ObsTerm(func=observation.get_local_tracking_state)
 
         # Current target + next waypoint for earlier turn preparation in S-curves.
@@ -235,6 +263,16 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
+
+    apply_hydrodynamics = EventTerm(
+        func=hydrodynamics.apply_hydrodynamics,
+        mode="interval",
+        interval_range_s=(0.0, 0.0),
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
+            **HYDRODYNAMICS_PARAMS,
+        },
+    )
 
     reset_local_nav = EventTerm(
         func=reset_local_nav_task,
