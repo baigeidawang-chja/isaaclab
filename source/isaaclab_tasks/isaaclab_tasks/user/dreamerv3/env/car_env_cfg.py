@@ -76,6 +76,37 @@ HYDRODYNAMICS_PARAMS = {
     "thruster_force_scale": 1.0,
 }
 
+WATERLAND_TERRAIN_USD = (
+    "/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Environments/Terrains/waterland.usd"
+)
+
+WATERLAND_MEDIUM_STATE_PARAMS = {
+    "medium_mode": "periodic_waterland",
+    "use_env_origin": True,
+    "terrain_x_min": -10.0,
+    "terrain_x_max": 14.0,
+    "stage_len": 1.5,
+    "cycle_len": 6.0,
+    "high_z": 1.0,
+    "low_z": 0.25,
+    "slope_angle_deg": 30.0,
+    "wheel_threshold": 0.55,
+    "wheel_sharpness": 0.15,
+    "thruster_threshold": 0.35,
+    "thruster_sharpness": 0.15,
+    "drag_min": 0.0,
+    "drag_max": 1.0,
+}
+
+WATERLAND_HYDRODYNAMICS_PARAMS = {
+    **WATERLAND_MEDIUM_STATE_PARAMS,
+    "linear_drag": (8.0, 14.0, 2.0),
+    "quadratic_drag": (2.0, 4.0, 0.5),
+    "yaw_damping": 1.5,
+    "thruster_gain": 12.0,
+    "thruster_force_scale": 1.0,
+}
+
 @configclass
 class MySceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
@@ -140,6 +171,21 @@ class MySceneCfg(InteractiveSceneCfg):
             texture_file=f"/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
+
+
+@configclass
+class MyWaterlandSceneCfg(MySceneCfg):
+    """USD terrain scene for periodic water-land transition experiments."""
+
+    terrain = TerrainImporterCfg(
+        prim_path="/World/ground",
+        terrain_type="usd",
+        usd_path=WATERLAND_TERRAIN_USD,
+        env_spacing=0.0,
+    )
+
+    robot: ArticulationCfg = CAR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # type: ignore[attr-defined]
+    robot.init_state.pos = (0.0, 0.0, 1.2)
 
 ##
 # MDP settings
@@ -604,3 +650,64 @@ class MyCarAmphibiousEnvCfg_PLAY(MyCarAmphibiousEnvCfg):
         super().__post_init__()
         self.scene.num_envs = 16
         self.scene.env_spacing = 0
+
+
+@configclass
+class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
+    """Periodic water-land transition task on the waterland USD terrain."""
+
+    scene: MyWaterlandSceneCfg = MyWaterlandSceneCfg(num_envs=1, env_spacing=0.0)
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.episode_length_s = 30.0
+
+        self.scene.terrain.usd_path = WATERLAND_TERRAIN_USD
+        self.scene.terrain.terrain_type = "usd"
+        self.scene.terrain.env_spacing = 0.0
+        self.scene.env_spacing = 0.0
+
+        self.observations.policy.medium_state_label = ObsTerm(
+            func=observation.medium_state_label,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                **WATERLAND_MEDIUM_STATE_PARAMS,
+            },
+        )
+        self.events.apply_hydrodynamics.params = {
+            "asset_cfg": SceneEntityCfg("robot", body_names=["base_link"]),
+            **WATERLAND_HYDRODYNAMICS_PARAMS,
+            "debug": True,
+            "debug_every": 100,
+        }
+
+        self.events.reset_local_nav.params["fixed_path_id"] = 1
+        self.events.reset_local_nav.params["disable_obstacles"] = True
+        self.events.reset_local_nav.params["start_idx_range"] = (0, 90)
+        self.events.reset_local_nav.params["waterland_height_reset"] = True
+        self.events.reset_local_nav.params["waterland_x_min"] = WATERLAND_MEDIUM_STATE_PARAMS["terrain_x_min"]
+        self.events.reset_local_nav.params["waterland_stage_len"] = WATERLAND_MEDIUM_STATE_PARAMS["stage_len"]
+        self.events.reset_local_nav.params["waterland_cycle_len"] = WATERLAND_MEDIUM_STATE_PARAMS["cycle_len"]
+        self.events.reset_local_nav.params["waterland_high_z"] = WATERLAND_MEDIUM_STATE_PARAMS["high_z"]
+        self.events.reset_local_nav.params["waterland_low_z"] = WATERLAND_MEDIUM_STATE_PARAMS["low_z"]
+        self.events.reset_local_nav.params["root_height_offset"] = 0.2
+        self.events.reset_local_nav.params["lateral_offset_range"] = (-0.15, 0.15)
+        self.events.reset_local_nav.params["heading_offset_range"] = (-0.03, 0.03)
+        self.events.reset_local_nav.params["start_speed_range"] = (0.0, 0.04)
+        self.events.reset_local_nav.params["waypoint_reach_thresh"] = 0.45
+
+        self.rewards.waypoint_reached.weight = 1.0
+        self.rewards.waypoint_reached.params["bonus"] = 0.3
+        self.rewards.speed_tracking.weight = 0.1
+        self.rewards.speed_tracking.params["target_speed"] = 0.25
+        self.rewards.time_penalty.params["penalty_per_step"] = -0.001
+        self.terminations.target_too_far.params["max_target_distance"] = 6.0
+
+
+@configclass
+class MyCarWaterlandAmphibiousEnvCfg_PLAY(MyCarWaterlandAmphibiousEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.num_envs = 1
+        self.scene.env_spacing = 0.0
+        self.scene.terrain.env_spacing = 0.0

@@ -12,24 +12,49 @@ import numpy as np
 from isaaclab.app import AppLauncher
 
 
-def _sample_action(action_dim: int, num_envs: int, step: int, rng: np.random.Generator) -> np.ndarray:
-    """Simple exploratory controller for crossing the x-based medium transition."""
+LABEL_NAMES = [
+    "lambda_medium",
+    "eta_wheel",
+    "eta_thruster",
+    "drag_scale",
+    "slope_sin",
+    "terrain_height",
+    "terrain_phase",
+]
+
+
+def _sample_action(
+    action_dim: int,
+    num_envs: int,
+    step: int,
+    rng: np.random.Generator,
+    labels: np.ndarray | None = None,
+) -> np.ndarray:
+    """Semi-structured excitation for waterland medium-state data collection."""
     actions = np.zeros((num_envs, action_dim), dtype=np.float32)
-    actions[:, 0] = rng.uniform(0.45, 1.0, size=num_envs)
-    actions[:, 1] = 0.18 * np.sin(0.025 * step + np.arange(num_envs) * 0.37)
-    actions[:, 1] += rng.normal(0.0, 0.08, size=num_envs)
+    actions[:, 0] = rng.uniform(0.3, 0.8, size=num_envs)
+    actions[:, 1] = rng.uniform(-0.15, 0.15, size=num_envs)
     if action_dim >= 3:
-        actions[:, 2] = rng.uniform(0.2, 1.0, size=num_envs)
+        if labels is None:
+            actions[:, 2] = rng.uniform(0.0, 1.0, size=num_envs)
+        else:
+            lambda_medium = labels[:, 0]
+            low = lambda_medium < 0.2
+            mid = (lambda_medium >= 0.2) & (lambda_medium < 0.8)
+            high = lambda_medium >= 0.8
+            actions[low, 2] = rng.uniform(0.0, 0.35, size=int(np.sum(low)))
+            actions[mid, 2] = rng.uniform(0.25, 0.75, size=int(np.sum(mid)))
+            actions[high, 2] = rng.uniform(0.55, 1.0, size=int(np.sum(high)))
     return np.clip(actions, -1.0, 1.0)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Collect Amphibious medium-state dataset.")
-    parser.add_argument("--task", type=str, default="Isaac-Navigation-Car-Dreamer-Amphibious-v0")
+    parser.add_argument("--task", type=str, default="Isaac-Navigation-Car-Dreamer-AmphibiousTerrain-v0")
     parser.add_argument("--num_envs", type=int, default=16)
     parser.add_argument("--steps", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--output", type=str, default="runs/medium_dataset/amphibious_medium_dataset.npz")
+    parser.add_argument("--output", type=str, default="runs/medium_dataset/amphibious_terrain_medium_dataset.npz")
     parser.add_argument("--viewer", action="store_true", help="Enable Isaac Sim viewer window.")
     AppLauncher.add_app_launcher_args(parser)
     args = parser.parse_args()
@@ -73,7 +98,8 @@ def main():
         done_steps = []
 
         for step in range(int(args.steps)):
-            actions = _sample_action(action_dim, num_envs, step, rng)
+            current_labels = np.stack([obs["medium_state_label"] for obs in obs_batch], axis=0).astype(np.float32)
+            actions = _sample_action(action_dim, num_envs, step, rng, current_labels)
             step_thunks = [env.step(actions[i]) for i, env in enumerate(envs)]
             results = [thunk() for thunk in step_thunks]
             obs_batch = [result[0] for result in results]
@@ -104,15 +130,30 @@ def main():
             medium_state_label=labels,
             reward=rewards,
             done=dones,
-            label_names=np.asarray(["lambda", "eta_wheel", "eta_thruster", "drag_scale"]),
+            # First four dimensions stay backward-compatible.
+            # 0 lambda, 1 eta_wheel, 2 eta_thruster, 3 drag_scale.
+            label_names=np.asarray(LABEL_NAMES),
         )
         print(f"[COLLECT] saved={output}")
         print(f"[COLLECT] obs shape={obs.shape}")
         print(f"[COLLECT] action shape={actions.shape}")
         print(f"[COLLECT] medium_state_label shape={labels.shape}")
-        print(f"[COLLECT] lambda range=({labels[..., 0].min():.3f}, {labels[..., 0].max():.3f})")
-        print(f"[COLLECT] eta_wheel range=({labels[..., 1].min():.3f}, {labels[..., 1].max():.3f})")
-        print(f"[COLLECT] eta_thruster range=({labels[..., 2].min():.3f}, {labels[..., 2].max():.3f})")
+        for idx, name in enumerate(LABEL_NAMES[: labels.shape[-1]]):
+            values = labels[..., idx]
+            print(
+                f"[COLLECT] {name} min/max/mean="
+                f"({values.min():.3f}, {values.max():.3f}, {values.mean():.3f})"
+            )
+        lambda_values = labels[..., 0]
+        land_ratio = np.mean(lambda_values < 0.05)
+        transition_ratio = np.mean((lambda_values >= 0.05) & (lambda_values <= 0.95))
+        water_ratio = np.mean(lambda_values > 0.95)
+        print(
+            "[COLLECT] lambda bins "
+            f"land(<0.05)={land_ratio:.3f} "
+            f"transition(0.05..0.95)={transition_ratio:.3f} "
+            f"water(>0.95)={water_ratio:.3f}"
+        )
         print(f"[COLLECT] reward shape={rewards.shape} done shape={dones.shape}")
     except Exception:
         traceback.print_exc()

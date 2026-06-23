@@ -44,20 +44,36 @@ def _build_dense_path(points: list[tuple[float, float]], step: float | None = 0.
 
 
 def _get_path_library(device: torch.device) -> list[dict[str, torch.Tensor]]:
-    """Create a single 10-waypoint S-curve sized for a 15m x 15m square."""
-    raw_paths = [[
-        (0.8, 0.0),
-        (2.2, -2.1),
-        (3.8, -3.2),
-        (5.2, -2.8),
-        (6.6, -1.1),
-        (8.0, 1.1),
-        (9.4, 2.8),
-        (10.8, 3.2),
-        (12.2, 2.1),
-        (13.8, 0.0),
-    ]]
-    library = [_build_dense_path(path, step=None) for path in raw_paths]
+    """Create reference paths for S-curve and Waterland +x traversal tasks."""
+    raw_paths = [
+        [
+            (0.8, 0.0),
+            (2.2, -2.1),
+            (3.8, -3.2),
+            (5.2, -2.8),
+            (6.6, -1.1),
+            (8.0, 1.1),
+            (9.4, 2.8),
+            (10.8, 3.2),
+            (12.2, 2.1),
+            (13.8, 0.0),
+        ],
+        [
+            (-9.2, 0.0),
+            (-6.5, 0.0),
+            (-3.5, 0.0),
+            (-0.5, 0.0),
+            (2.5, 0.0),
+            (5.5, 0.0),
+            (8.5, 0.0),
+            (11.5, 0.0),
+            (13.2, 0.0),
+        ],
+    ]
+    library = [
+        _build_dense_path(raw_paths[0], step=None),
+        _build_dense_path(raw_paths[1], step=0.2),
+    ]
     for path in library:
         for key, value in path.items():
             path[key] = value.to(device=device)
@@ -365,6 +381,14 @@ def reset_local_nav_task(
     path_mode: str = "library",
     goal_distance_range: tuple[float, float] = (1.5, 3.0),
     goal_lateral_range: tuple[float, float] = (-0.3, 0.3),
+    start_idx_range: tuple[int, int] | None = None,
+    waterland_height_reset: bool = False,
+    waterland_x_min: float = -10.0,
+    waterland_stage_len: float = 1.5,
+    waterland_cycle_len: float = 6.0,
+    waterland_high_z: float = 1.0,
+    waterland_low_z: float = 0.25,
+    root_height_offset: float = 0.2,
     disable_obstacles: bool = False,
     debug_vis: bool = False,
     debug_vis_num_points: int = 16,
@@ -436,6 +460,11 @@ def reset_local_nav_task(
         path = env._local_nav_path_library[path_id]
         goal_idx = len(path["s"]) - 1
         start_idx = 0
+        if start_idx_range is not None:
+            lo = max(0, int(start_idx_range[0]))
+            hi = min(goal_idx - 1, int(start_idx_range[1]))
+            if hi > lo:
+                start_idx = int(rng.integers(lo, hi + 1))
         base_pos_local, base_yaw = _path_pose_from_index(path, start_idx)
 
         e_y = float(rng.uniform(*lateral_offset_range))
@@ -447,6 +476,20 @@ def reset_local_nav_task(
         yaw = base_yaw + e_psi
         pos_world_xy = pos_local_xy + env.scene.env_origins[env_id, :2]
         pos_z = default_root_state[env_id, 2]
+        if waterland_height_reset:
+            phase = torch.remainder(pos_local_xy[0] - float(waterland_x_min), float(waterland_cycle_len))
+            stage_len = max(float(waterland_stage_len), 1e-6)
+            if phase < stage_len:
+                terrain_z = float(waterland_high_z)
+            elif phase < 2.0 * stage_len:
+                r = float((phase - stage_len) / stage_len)
+                terrain_z = float(waterland_high_z) + (float(waterland_low_z) - float(waterland_high_z)) * r
+            elif phase < 3.0 * stage_len:
+                terrain_z = float(waterland_low_z)
+            else:
+                r = float((phase - 3.0 * stage_len) / stage_len)
+                terrain_z = float(waterland_low_z) + (float(waterland_high_z) - float(waterland_low_z)) * r
+            pos_z = terrain_z + float(root_height_offset)
         quat = math_utils.quat_from_euler_xyz(
             torch.tensor([0.0], device=device),
             torch.tensor([0.0], device=device),

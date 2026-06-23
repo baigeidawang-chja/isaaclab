@@ -87,6 +87,44 @@ gym.register(
 )
 
 gym.register(
+    id="Isaac-Navigation-Car-Dreamer-Waterland-Amphibious-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.car_env_cfg:MyCarWaterlandAmphibiousEnvCfg",
+        "dreamer_cfg_entry_point": f"{__name__}.dreamer_agent_cfg:DreamerAgentCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Navigation-Car-Dreamer-Waterland-Amphibious-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.car_env_cfg:MyCarWaterlandAmphibiousEnvCfg_PLAY",
+    },
+)
+
+gym.register(
+    id="Isaac-Navigation-Car-Dreamer-AmphibiousTerrain-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.car_env_cfg:MyCarWaterlandAmphibiousEnvCfg",
+        "dreamer_cfg_entry_point": f"{__name__}.dreamer_agent_cfg:DreamerAgentCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Navigation-Car-Dreamer-AmphibiousTerrain-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.car_env_cfg:MyCarWaterlandAmphibiousEnvCfg_PLAY",
+    },
+)
+
+gym.register(
     id="Isaac-Navigation-Car-Dreamer-TwoPointRecover-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
