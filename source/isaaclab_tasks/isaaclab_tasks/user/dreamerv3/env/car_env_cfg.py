@@ -100,10 +100,15 @@ WATERLAND_MEDIUM_STATE_PARAMS = {
 
 WATERLAND_HYDRODYNAMICS_PARAMS = {
     **WATERLAND_MEDIUM_STATE_PARAMS,
-    "linear_drag": (8.0, 14.0, 2.0),
-    "quadratic_drag": (2.0, 4.0, 0.5),
-    "yaw_damping": 1.5,
-    "thruster_gain": 12.0,
+    # "linear_drag": (8.0, 14.0, 2.0),
+    # "quadratic_drag": (2.0, 4.0, 0.5),
+    # "yaw_damping": 1.5,
+    # "thruster_gain": 12.0,
+    # "thruster_force_scale": 1.0,
+    "linear_drag": (2.0, 4.0, 0.5),
+    "quadratic_drag": (0.5, 1.0, 0.1),
+    "yaw_damping": 0.5,
+    "thruster_gain": 16.0,
     "thruster_force_scale": 1.0,
 }
 
@@ -683,7 +688,7 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 1
         self.events.reset_local_nav.params["disable_obstacles"] = True
-        self.events.reset_local_nav.params["start_idx_range"] = (0, 90)
+        self.events.reset_local_nav.params["start_idx_range"] = (2.8, 2.8)
         self.events.reset_local_nav.params["waterland_height_reset"] = True
         self.events.reset_local_nav.params["waterland_x_min"] = WATERLAND_MEDIUM_STATE_PARAMS["terrain_x_min"]
         self.events.reset_local_nav.params["waterland_stage_len"] = WATERLAND_MEDIUM_STATE_PARAMS["stage_len"]
