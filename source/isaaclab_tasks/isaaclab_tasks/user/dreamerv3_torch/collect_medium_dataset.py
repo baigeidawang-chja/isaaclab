@@ -13,13 +13,8 @@ from isaaclab.app import AppLauncher
 
 
 LABEL_NAMES = [
-    "lambda_medium",
     "eta_wheel",
     "eta_thruster",
-    "drag_scale",
-    "slope_sin",
-    "terrain_height",
-    "terrain_phase",
 ]
 
 
@@ -32,19 +27,10 @@ def _sample_action(
 ) -> np.ndarray:
     """Semi-structured excitation for waterland medium-state data collection."""
     actions = np.zeros((num_envs, action_dim), dtype=np.float32)
-    actions[:, 0] = rng.uniform(0.3, 0.8, size=num_envs)
-    actions[:, 1] = rng.uniform(-0.15, 0.15, size=num_envs)
+    actions[:, 0] = rng.uniform(0.6, 1.0, size=num_envs)
+    actions[:, 1] = rng.uniform(-0.05, 0.05, size=num_envs)
     if action_dim >= 3:
-        if labels is None:
-            actions[:, 2] = rng.uniform(0.0, 1.0, size=num_envs)
-        else:
-            lambda_medium = labels[:, 0]
-            low = lambda_medium < 0.2
-            mid = (lambda_medium >= 0.2) & (lambda_medium < 0.8)
-            high = lambda_medium >= 0.8
-            actions[low, 2] = rng.uniform(0.0, 0.35, size=int(np.sum(low)))
-            actions[mid, 2] = rng.uniform(0.25, 0.75, size=int(np.sum(mid)))
-            actions[high, 2] = rng.uniform(0.55, 1.0, size=int(np.sum(high)))
+        actions[:, 2] = rng.uniform(0.3, 1.0, size=num_envs)
     return np.clip(actions, -1.0, 1.0)
 
 
@@ -123,6 +109,7 @@ def main():
         rewards = np.stack(reward_steps, axis=0)
         dones = np.stack(done_steps, axis=0)
 
+        # 数据采集，保存成.npz数据集
         np.savez_compressed(
             output,
             obs=obs,
@@ -130,8 +117,6 @@ def main():
             medium_state_label=labels,
             reward=rewards,
             done=dones,
-            # First four dimensions stay backward-compatible.
-            # 0 lambda, 1 eta_wheel, 2 eta_thruster, 3 drag_scale.
             label_names=np.asarray(LABEL_NAMES),
         )
         print(f"[COLLECT] saved={output}")
@@ -144,16 +129,12 @@ def main():
                 f"[COLLECT] {name} min/max/mean="
                 f"({values.min():.3f}, {values.max():.3f}, {values.mean():.3f})"
             )
-        lambda_values = labels[..., 0]
-        land_ratio = np.mean(lambda_values < 0.05)
-        transition_ratio = np.mean((lambda_values >= 0.05) & (lambda_values <= 0.95))
-        water_ratio = np.mean(lambda_values > 0.95)
-        print(
-            "[COLLECT] lambda bins "
-            f"land(<0.05)={land_ratio:.3f} "
-            f"transition(0.05..0.95)={transition_ratio:.3f} "
-            f"water(>0.95)={water_ratio:.3f}"
-        )
+        eta_wheel = labels[..., 0]
+        eta_thruster = labels[..., 1]
+        wheel_transition = np.mean((eta_wheel > 0.05) & (eta_wheel < 0.95))
+        thruster_transition = np.mean((eta_thruster > 0.05) & (eta_thruster < 0.95))
+        print(f"[COLLECT] eta_wheel transition ratio={wheel_transition:.3f}")
+        print(f"[COLLECT] eta_thruster transition ratio={thruster_transition:.3f}")
         print(f"[COLLECT] reward shape={rewards.shape} done shape={dones.shape}")
     except Exception:
         traceback.print_exc()

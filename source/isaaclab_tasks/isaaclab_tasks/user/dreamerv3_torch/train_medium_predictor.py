@@ -12,13 +12,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 DEFAULT_LABEL_NAMES = [
-    "lambda_medium",
     "eta_wheel",
     "eta_thruster",
-    "drag_scale",
-    "slope_sin",
-    "terrain_height",
-    "terrain_phase",
 ]
 
 
@@ -104,8 +99,14 @@ def _predict(model, x: np.ndarray, device):
 
 
 def _print_metrics(name: str, pred: np.ndarray, target: np.ndarray, label_names):
-    report_keys = ["eta_wheel", "eta_thruster", "drag_scale"]
-    transition = (target[:, 0] > 0.1) & (target[:, 0] < 0.9)
+    report_keys = ["eta_wheel", "eta_thruster"]
+    transition = np.zeros(target.shape[0], dtype=bool)
+    if "eta_wheel" in label_names:
+        eta_wheel = target[:, label_names.index("eta_wheel")]
+        transition |= (eta_wheel > 0.1) & (eta_wheel < 0.9)
+    if "eta_thruster" in label_names:
+        eta_thruster = target[:, label_names.index("eta_thruster")]
+        transition |= (eta_thruster > 0.1) & (eta_thruster < 0.9)
     transition = transition if np.any(transition) else np.ones_like(transition, dtype=bool)
     for key in report_keys:
         if key not in label_names:

@@ -81,21 +81,30 @@ WATERLAND_TERRAIN_USD = (
 )
 
 WATERLAND_MEDIUM_STATE_PARAMS = {
-    "medium_mode": "periodic_waterland",
-    "use_env_origin": True,
+    "medium_mode": "height_sampled_waterland",
+    "water_z": 0.65,
+    "wheel_submersion_depth": 0.15,
+    "thruster_submersion_depth": 0.20,
+    "body_submersion_depth": 0.25,
+    "front_x": 0.23,
+    "rear_x": -0.23,
+    "left_y": 0.14,
+    "right_y": -0.14,
+    "wheel_z": -0.16,
+    "thruster_x": -0.28,
+    "thruster_y": 0.0,
+    "thruster_z": -0.06,
+    "body_z": 0.0,
+    "drag_min": 0.0,
+    "drag_max": 1.0,
+}
+
+WATERLAND_RESET_TERRAIN_PARAMS = {
     "terrain_x_min": -10.0,
-    "terrain_x_max": 14.0,
     "stage_len": 1.5,
     "cycle_len": 6.0,
     "high_z": 1.0,
     "low_z": 0.25,
-    "slope_angle_deg": 30.0,
-    "wheel_threshold": 0.55,
-    "wheel_sharpness": 0.15,
-    "thruster_threshold": 0.35,
-    "thruster_sharpness": 0.15,
-    "drag_min": 0.0,
-    "drag_max": 1.0,
 }
 
 WATERLAND_HYDRODYNAMICS_PARAMS = {
@@ -690,11 +699,11 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
         self.events.reset_local_nav.params["disable_obstacles"] = True
         self.events.reset_local_nav.params["start_idx_range"] = (2.8, 2.8)
         self.events.reset_local_nav.params["waterland_height_reset"] = True
-        self.events.reset_local_nav.params["waterland_x_min"] = WATERLAND_MEDIUM_STATE_PARAMS["terrain_x_min"]
-        self.events.reset_local_nav.params["waterland_stage_len"] = WATERLAND_MEDIUM_STATE_PARAMS["stage_len"]
-        self.events.reset_local_nav.params["waterland_cycle_len"] = WATERLAND_MEDIUM_STATE_PARAMS["cycle_len"]
-        self.events.reset_local_nav.params["waterland_high_z"] = WATERLAND_MEDIUM_STATE_PARAMS["high_z"]
-        self.events.reset_local_nav.params["waterland_low_z"] = WATERLAND_MEDIUM_STATE_PARAMS["low_z"]
+        self.events.reset_local_nav.params["waterland_x_min"] = WATERLAND_RESET_TERRAIN_PARAMS["terrain_x_min"]
+        self.events.reset_local_nav.params["waterland_stage_len"] = WATERLAND_RESET_TERRAIN_PARAMS["stage_len"]
+        self.events.reset_local_nav.params["waterland_cycle_len"] = WATERLAND_RESET_TERRAIN_PARAMS["cycle_len"]
+        self.events.reset_local_nav.params["waterland_high_z"] = WATERLAND_RESET_TERRAIN_PARAMS["high_z"]
+        self.events.reset_local_nav.params["waterland_low_z"] = WATERLAND_RESET_TERRAIN_PARAMS["low_z"]
         self.events.reset_local_nav.params["root_height_offset"] = 0.2
         self.events.reset_local_nav.params["lateral_offset_range"] = (-0.15, 0.15)
         self.events.reset_local_nav.params["heading_offset_range"] = (-0.03, 0.03)

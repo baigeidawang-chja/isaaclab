@@ -16,13 +16,8 @@ import numpy as np
 
 
 DEFAULT_LABEL_NAMES = [
-    "lambda_medium",
     "eta_wheel",
     "eta_thruster",
-    "drag_scale",
-    "slope_sin",
-    "terrain_height",
-    "terrain_phase",
 ]
 
 
@@ -54,8 +49,8 @@ def _select_dataset_episode(labels: np.ndarray, done: np.ndarray, min_length: in
     best = None
     for env_id in range(labels.shape[1]):
         for start, end in _segments_from_done(done[:, env_id], min_length):
-            lambda_values = labels[start:end, env_id, 0]
-            coverage = float(lambda_values.max() - lambda_values.min())
+            values = labels[start:end, env_id]
+            coverage = float(np.sum(values.max(axis=0) - values.min(axis=0)))
             score = (coverage, end - start)
             if best is None or score > best[0]:
                 best = (score, env_id, start, end)
@@ -74,8 +69,8 @@ def _select_prediction_episode(preds, min_length: int):
         local_done = done[idx]
         for start, end in _segments_from_done(local_done, min_length):
             segment = idx[start:end]
-            lambda_values = target[segment, 0]
-            coverage = float(lambda_values.max() - lambda_values.min())
+            values = target[segment]
+            coverage = float(np.sum(values.max(axis=0) - values.min(axis=0)))
             score = (coverage, len(segment))
             if best is None or score > best[0]:
                 best = (score, segment)
@@ -131,15 +126,16 @@ def _save_prediction_curve(preds, label_names, figures_dir, key, max_points, min
 
 
 def _save_histogram(labels, label_names, figures_dir):
-    lambda_values = labels[..., 0].reshape(-1)
     fig, ax = plt.subplots(figsize=(7, 4))
-    ax.hist(lambda_values, bins=30, alpha=0.85)
-    ax.set_xlabel(label_names[0])
+    for idx, name in enumerate(label_names[: labels.shape[-1]]):
+        ax.hist(labels[..., idx].reshape(-1), bins=30, alpha=0.55, label=name)
+    ax.set_xlabel("label value")
     ax.set_ylabel("count")
-    ax.set_title("lambda distribution")
+    ax.set_title("medium label distribution")
     ax.grid(True, alpha=0.3)
+    ax.legend()
     fig.tight_layout()
-    path = figures_dir / "label_histogram_lambda.png"
+    path = figures_dir / "label_histogram_eta.png"
     fig.savefig(path, dpi=160)
     plt.close(fig)
     print(f"[PLOT] saved={path}")
@@ -172,7 +168,6 @@ def main():
     pred_names = _label_names(preds, preds["target"].shape[-1])
     _save_prediction_curve(preds, pred_names, figures_dir, "eta_wheel", args.max_points, args.min_episode_length)
     _save_prediction_curve(preds, pred_names, figures_dir, "eta_thruster", args.max_points, args.min_episode_length)
-    _save_prediction_curve(preds, pred_names, figures_dir, "drag_scale", args.max_points, args.min_episode_length)
 
 
 if __name__ == "__main__":
