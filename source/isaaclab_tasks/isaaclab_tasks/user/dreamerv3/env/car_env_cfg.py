@@ -77,12 +77,12 @@ HYDRODYNAMICS_PARAMS = {
 }
 
 WATERLAND_TERRAIN_USD = (
-    "/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Environments/Terrains/waterland.usd"
+    "/media/chja/CE54D158C95990271/Assets/Isaac/4.5/Isaac/Environments/Terrains/waterland10degree.usd"
 )
 
 WATERLAND_MEDIUM_STATE_PARAMS = {
     "medium_mode": "height_sampled_waterland",
-    "water_z": 0.65,
+    "water_z": 0.95,
     "wheel_submersion_depth": 0.15,
     "thruster_submersion_depth": 0.20,
     "body_submersion_depth": 0.25,
@@ -196,6 +196,22 @@ class MyWaterlandSceneCfg(MySceneCfg):
         terrain_type="usd",
         usd_path=WATERLAND_TERRAIN_USD,
         env_spacing=0.0,
+    )
+
+    water_surface = AssetBaseCfg(
+        prim_path="/World/water_surface",
+        spawn=sim_utils.CuboidCfg(
+            size=(30.0, 50.0, 0.004),
+            visual_material=sim_utils.GlassMdlCfg(
+                glass_color=(0.25, 0.55, 1.0),
+                frosting_roughness=0.02,
+                thin_walled=True,
+                glass_ior=1.333,
+            ),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=(2.0, 0.0, WATERLAND_MEDIUM_STATE_PARAMS["water_z"])
+        ),
     )
 
     robot: ArticulationCfg = CAR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # type: ignore[attr-defined]
@@ -354,6 +370,7 @@ class AmphibiousObservationsCfg(ObservationsCfg):
 
         stuck_label = None
         contact_memory_label = None
+        future_waypoint_preview = None
         medium_state_label = ObsTerm(
             func=observation.medium_state_label,
             params={
@@ -609,8 +626,7 @@ class MyCarAmphibiousEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.observations.policy.stuck_label = None
         self.observations.policy.contact_memory_label = None
-        self.observations.policy.mode_label = None
-        self.observations.policy.interaction_label = None
+        self.observations.policy.future_waypoint_preview = None
         self.observations.policy.concatenate_terms = False
         self.observations.policy.medium_state_label = ObsTerm(
             func=observation.medium_state_label,
@@ -675,6 +691,7 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.episode_length_s = 30.0
+        self.sim.render.enable_translucency = True
 
         self.scene.terrain.usd_path = WATERLAND_TERRAIN_USD
         self.scene.terrain.terrain_type = "usd"
@@ -697,6 +714,7 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 1
         self.events.reset_local_nav.params["disable_obstacles"] = True
+        self.events.reset_local_nav.params["debug_vis"] = False
         self.events.reset_local_nav.params["start_idx_range"] = (2.8, 2.8)
         self.events.reset_local_nav.params["waterland_height_reset"] = True
         self.events.reset_local_nav.params["waterland_x_min"] = WATERLAND_RESET_TERRAIN_PARAMS["terrain_x_min"]
@@ -710,12 +728,15 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
         self.events.reset_local_nav.params["start_speed_range"] = (0.0, 0.04)
         self.events.reset_local_nav.params["waypoint_reach_thresh"] = 0.45
 
-        self.rewards.waypoint_reached.weight = 1.0
-        self.rewards.waypoint_reached.params["bonus"] = 0.3
-        self.rewards.speed_tracking.weight = 0.1
-        self.rewards.speed_tracking.params["target_speed"] = 0.25
-        self.rewards.time_penalty.params["penalty_per_step"] = -0.001
-        self.terminations.target_too_far.params["max_target_distance"] = 6.0
+        self.rewards.progress_forward.weight = 0.0
+        self.rewards.waypoint_reached.weight = 0.0
+        self.rewards.heading_align.weight = 0.0
+        self.rewards.speed_tracking.weight = 0.0
+        self.rewards.time_penalty.weight = 0.0
+
+        self.terminations.progress_state_tick = None
+        self.terminations.target_too_far = None
+        self.terminations.local_goal_reached = None
 
 
 @configclass
