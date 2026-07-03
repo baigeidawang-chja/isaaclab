@@ -132,6 +132,28 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg["seed"] = args_cli.seed if args_cli.seed is not None else agent_cfg["seed"]
     env_cfg.seed = agent_cfg["seed"]
 
+    # Add runtime/task metadata to Weights & Biases config when enabled.
+    # skrl initializes W&B inside the agent, so populate wandb_kwargs before creating the runner.
+    experiment_cfg = agent_cfg.get("agent", {}).get("experiment", {})
+    if experiment_cfg.get("wandb", False):
+        wandb_kwargs = experiment_cfg.setdefault("wandb_kwargs", {})
+        wandb_config = wandb_kwargs.setdefault("config", {})
+        wandb_config.update(
+            {
+                "task": args_cli.task,
+                "algorithm": algorithm.upper(),
+                "ml_framework": args_cli.ml_framework,
+                "num_envs": env_cfg.scene.num_envs,
+                "seed": agent_cfg["seed"],
+                "device": env_cfg.sim.device,
+                "sim_dt": env_cfg.sim.dt,
+                "decimation": getattr(env_cfg, "decimation", None),
+                "episode_length_s": getattr(env_cfg, "episode_length_s", None),
+                "max_iterations": args_cli.max_iterations,
+                "trainer_timesteps": agent_cfg.get("trainer", {}).get("timesteps"),
+            }
+        )
+
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "skrl", agent_cfg["agent"]["experiment"]["directory"])
     log_root_path = os.path.abspath(log_root_path)

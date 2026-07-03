@@ -278,7 +278,7 @@ class RecoveryPrimitiveAction(AckermannAction):
 
     The policy still outputs a continuous Box(6), but the action term converts it
     through argmax into one of six safe motion primitives:
-    continue, slow, reverse, rocking, left escape, right escape.
+    continue, slow, reverse, stop protect, left escape, right escape.
     """
 
     cfg: "RecoveryPrimitiveActionCfg"
@@ -337,15 +337,8 @@ class RecoveryPrimitiveAction(AckermannAction):
         velocity = torch.where(primitive == 0, torch.full_like(velocity, float(self.cfg.continue_speed)), velocity)
         velocity = torch.where(primitive == 1, torch.full_like(velocity, float(self.cfg.slow_speed)), velocity)
         velocity = torch.where(primitive == 2, torch.full_like(velocity, -float(self.cfg.reverse_speed)), velocity)
-
-        half_period = max(1, int(self.cfg.rocking_half_period_steps))
-        rocking_forward = ((self._primitive_age // half_period) % 2) == 0
-        rocking_velocity = torch.where(
-            rocking_forward,
-            torch.full_like(velocity, float(self.cfg.rocking_forward_speed)),
-            torch.full_like(velocity, -float(self.cfg.rocking_reverse_speed)),
-        )
-        velocity = torch.where(primitive == 3, rocking_velocity, velocity)
+        velocity = torch.where(primitive == 3, torch.zeros_like(velocity), velocity)
+        steering = torch.where(primitive == 3, torch.zeros_like(steering), steering)
 
         velocity = torch.where(primitive == 4, torch.full_like(velocity, float(self.cfg.escape_speed)), velocity)
         steering = torch.where(primitive == 4, torch.full_like(steering, float(self.cfg.escape_steer)), steering)
@@ -392,8 +385,5 @@ class RecoveryPrimitiveActionCfg(AckermannActionCfg):
     continue_speed: float = 0.45
     slow_speed: float = 0.18
     reverse_speed: float = 0.35
-    rocking_forward_speed: float = 0.35
-    rocking_reverse_speed: float = 0.35
-    rocking_half_period_steps: int = 6
     escape_speed: float = 0.25
     escape_steer: float = 0.42

@@ -67,8 +67,31 @@ agent:
   experiment:
     directory: "blocked_recovery"
     experiment_name: ""
-    write_interval: auto
-    checkpoint_interval: auto
+    write_interval: 500
+    checkpoint_interval: 2000
+    wandb: True
+    wandb_kwargs:
+      project: "blocked-recovery-ppo"
+      entity: "chja_jiangxin-huazhong-university-of-science-and-technology"
+      mode: "online"
+      sync_tensorboard: True
+      save_code: True
+      tags: ["isaaclab", "skrl", "ppo", "blocked_recovery", "primitive_action"]
+      notes: "BlockedRecovery first-stage PPO: curb_momentum_loss with Box(6) primitive selection."
+      config:
+        task: "Isaac-Navigation-Car-Dreamer-BlockedRecovery-v0"
+        algorithm: "PPO"
+        action_type: "RecoveryPrimitiveAction"
+        action_dim: 6
+        primitive_actions:
+          - "continue_forward"
+          - "slow_forward"
+          - "reverse"
+          - "stop_protect"
+          - "turn_left_escape"
+          - "turn_right_escape"
+        scenario_weights: [1.0, 0.0, 0.0]
+        scenario_stage: "curb_momentum_loss"
 
 
 # Sequential trainer

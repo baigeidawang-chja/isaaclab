@@ -671,7 +671,7 @@ def reset_blocked_recovery_task(
         # Object 0: curb, Object 1: belly/high-center obstacle. Hide inactive objects.
         if scenario_id == 0 and num_obstacles >= 1:
             curb_x = float(rng.uniform(*curb_x_range))
-            object_states[local_idx, 0, 0:3] = torch.tensor([curb_x, 0.0, 0.06], device=device) + origin
+            object_states[local_idx, 0, 0:3] = torch.tensor([curb_x, 0.0, 0.015], device=device) + origin
             object_states[local_idx, 0, 3:7] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=device)
         elif scenario_id == 1 and num_obstacles >= 2:
             belly_x = float(rng.uniform(*belly_x_range))

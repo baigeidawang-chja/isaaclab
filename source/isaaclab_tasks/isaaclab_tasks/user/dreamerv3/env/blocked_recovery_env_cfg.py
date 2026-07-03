@@ -57,7 +57,7 @@ class BlockedRecoverySceneCfg(InteractiveSceneCfg):
                 prim_path="{ENV_REGEX_NS}/object_0",
                 init_state=RigidObjectCfg.InitialStateCfg(pos=(0.5, 0.0, -10.0)),
                 spawn=sim_utils.CuboidCfg(
-                    size=(0.03, 0.8, 0.03),
+                    size=(0.03, 2.5, 0.03),
                     rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
                     collision_props=sim_utils.CollisionPropertiesCfg(),
                     visual_material=sim_utils.PreviewSurfaceCfg(
@@ -113,17 +113,14 @@ class BlockedRecoveryActionsCfg:
         wheel_radius=0.035,
         asset_name="robot",
         no_reverse=False,
-        min_steps_between_switch=4,
-        max_speed=0.55,
+        min_steps_between_switch=1,
+        max_speed=1.55,
         max_steer=0.45,
-        max_speed_rate=0.35,
+        max_speed_rate=1.0,
         max_steer_rate=0.8,
         continue_speed=0.45,
         slow_speed=0.18,
         reverse_speed=0.35,
-        rocking_forward_speed=0.35,
-        rocking_reverse_speed=0.35,
-        rocking_half_period_steps=6,
         escape_speed=0.25,
         escape_steer=0.42,
     )
@@ -188,7 +185,7 @@ class BlockedRecoveryEventCfg:
             "heading_range": (-0.04, 0.04),
             "start_speed_range": (0.0, 0.03),
             "root_z": 0.18,
-            "curb_x_range": (0.42, 0.55),
+            "curb_x_range": (0.0, 1.30),
             "belly_x_range": (0.30, 0.45),
             "success_distance": 1.15,
         },
@@ -285,7 +282,7 @@ class CommandsCfg:
 class MyCarBlockedRecoveryEnvCfg(ManagerBasedRLEnvCfg):
     """First-stage blocked recovery task: curb momentum loss only."""
 
-    scene: BlockedRecoverySceneCfg = BlockedRecoverySceneCfg(num_envs=1, env_spacing=2.0)
+    scene: BlockedRecoverySceneCfg = BlockedRecoverySceneCfg(num_envs=1, env_spacing=5.0)
     observations: BlockedRecoveryObservationsCfg = BlockedRecoveryObservationsCfg()
     actions: BlockedRecoveryActionsCfg = BlockedRecoveryActionsCfg()
     commands: CommandsCfg = CommandsCfg()
