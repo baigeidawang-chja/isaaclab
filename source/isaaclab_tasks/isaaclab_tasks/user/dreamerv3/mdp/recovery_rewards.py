@@ -58,6 +58,8 @@ def update_recovery_metrics(
     if not hasattr(env, "_blocked_recovery_prev_x"):
         env._blocked_recovery_prev_x = x.detach().clone()
         env._blocked_recovery_start_x = x.detach().clone()
+        env._blocked_recovery_best_progress = torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
+        env._blocked_recovery_progress_gain = torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
         env._blocked_recovery_no_progress_steps = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
         env._blocked_recovery_slip_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
         env._blocked_recovery_contact_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
@@ -66,12 +68,26 @@ def update_recovery_metrics(
     delta_x = _finite_tensor(x - env._blocked_recovery_prev_x)
     env._blocked_recovery_prev_x = x.detach().clone()
     env._blocked_recovery_delta_x = delta_x
+    progress = _finite_tensor(x - env._blocked_recovery_start_x)
+    prev_best = env._blocked_recovery_best_progress
+    progress_gain = _finite_tensor(torch.clamp(progress - prev_best, min=0.0))
+    env._blocked_recovery_best_progress = torch.maximum(prev_best, progress.detach())
+    env._blocked_recovery_progress_gain = progress_gain
 
     wheel_speed, body_forward, slip, torque = _wheel_stats(env)
     mean_slip = slip.mean(dim=-1)
     mean_wheel_speed = wheel_speed.mean(dim=-1)
     spin_ineffective = (mean_wheel_speed > spin_speed_threshold) & (body_forward < low_body_speed_threshold)
-    little_progress = delta_x < float(min_progress_per_step)
+    little_progress = progress_gain < float(min_progress_per_step)
+    primitive_id = getattr(
+        env,
+        "_recovery_primitive_id",
+        torch.zeros(env.num_envs, dtype=torch.long, device=env.device),
+    )
+    is_reverse = primitive_id == 2
+    within_allowed_retreat = progress > -0.35
+    allow_reverse_recovery = is_reverse & within_allowed_retreat
+    little_progress = little_progress & (~allow_reverse_recovery)
     env._blocked_recovery_no_progress_steps = torch.where(
         little_progress,
         env._blocked_recovery_no_progress_steps + 1,
@@ -83,7 +99,9 @@ def update_recovery_metrics(
 
     metrics = {
         "x": x,
-        "progress": _finite_tensor(x - env._blocked_recovery_start_x),
+        "progress": progress,
+        "best_progress": env._blocked_recovery_best_progress,
+        "progress_gain": progress_gain,
         "delta_x": delta_x,
         "mean_slip": mean_slip,
         "max_slip": slip.max(dim=-1).values,
@@ -99,8 +117,9 @@ def update_recovery_metrics(
 
 
 def effective_displacement(env, scale: float = 8.0, max_delta: float = 0.08) -> torch.Tensor:
+    """Reward only new best forward progress, not raw per-step displacement."""
     metrics = update_recovery_metrics(env)
-    return _finite_tensor(scale * torch.clamp(metrics["delta_x"], min=-max_delta, max=max_delta))
+    return _finite_tensor(scale * torch.clamp(metrics["progress_gain"], min=0.0, max=max_delta))
 
 
 def success_bonus(env, scale: float = 5.0, success_distance: float | None = None) -> torch.Tensor:

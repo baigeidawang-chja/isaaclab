@@ -581,6 +581,8 @@ def _ensure_blocked_recovery_buffers(env: ManagerBasedEnv):
     env._blocked_recovery_start_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
     env._blocked_recovery_prev_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
     env._blocked_recovery_delta_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_best_progress = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_progress_gain = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
     env._blocked_recovery_no_progress_steps = torch.zeros(env.num_envs, dtype=torch.long, device=device)
     env._blocked_recovery_slip_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
     env._blocked_recovery_contact_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
@@ -657,6 +659,8 @@ def reset_blocked_recovery_task(
         env._blocked_recovery_start_x[env_id] = x0
         env._blocked_recovery_prev_x[env_id] = x0
         env._blocked_recovery_delta_x[env_id] = 0.0
+        env._blocked_recovery_best_progress[env_id] = 0.0
+        env._blocked_recovery_progress_gain[env_id] = 0.0
         env._blocked_recovery_no_progress_steps[env_id] = 0
         env._blocked_recovery_slip_duration[env_id] = 0.0
         env._blocked_recovery_contact_duration[env_id] = 0.0

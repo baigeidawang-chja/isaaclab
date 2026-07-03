@@ -218,7 +218,7 @@ class BlockedRecoveryRewardsCfg:
     time_penalty = RewTerm(
         func=recovery_rewards.time_penalty,
         weight=1.0,
-        params={"penalty_per_step": -0.003},
+        params={"penalty_per_step": -0.01},
     )
     wheel_spin_penalty = RewTerm(
         func=recovery_rewards.wheel_spin_penalty,
