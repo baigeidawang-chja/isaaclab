@@ -370,7 +370,7 @@ def reset_local_nav_task(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg,
-    obstacle_asset_cfg: SceneEntityCfg,
+    obstacle_asset_cfg: SceneEntityCfg | None = None,
     s_margin_start: float = 3.0,
     s_margin_end: float = 8.0,
     lateral_offset_range: tuple[float, float] = (-0.2, 0.2),
@@ -421,8 +421,15 @@ def reset_local_nav_task(
         env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
 
     robot = env.scene[asset_cfg.name]
-    obstacles: RigidObjectCollection = env.scene[obstacle_asset_cfg.name]
-    num_obstacles = obstacles.num_objects
+    obstacles: RigidObjectCollection | None = None
+    num_obstacles = 0
+    if not disable_obstacles:
+        if obstacle_asset_cfg is None:
+            raise ValueError(
+                "reset_local_nav_task requires obstacle_asset_cfg when disable_obstacles=False."
+            )
+        obstacles = env.scene[obstacle_asset_cfg.name]
+        num_obstacles = obstacles.num_objects
     device = env.device
     rng = np.random.default_rng()
 
@@ -437,9 +444,11 @@ def reset_local_nav_task(
     root_vel = torch.zeros((len(env_ids), 6), dtype=torch.float32, device=device)
     contact_init_yaw = torch.zeros((len(env_ids),), dtype=torch.float32, device=device)
 
-    object_states = torch.zeros((len(env_ids), num_obstacles, 13), dtype=torch.float32, device=device)
-    object_states[:, :, 2] = -10.0
-    object_states[:, :, 3] = 1.0
+    object_states = None
+    if not disable_obstacles:
+        object_states = torch.zeros((len(env_ids), num_obstacles, 13), dtype=torch.float32, device=device)
+        object_states[:, :, 2] = -10.0
+        object_states[:, :, 3] = 1.0
 
     for local_idx, env_id_tensor in enumerate(env_ids):
         env_id = int(env_id_tensor.item())
@@ -557,10 +566,125 @@ def reset_local_nav_task(
     # Set per-episode local-world yaw origin.
     env._contact_memory_initial_yaw[env_ids] = contact_init_yaw
 
-    object_ids = torch.arange(num_obstacles, device=device, dtype=torch.long)
-    obstacles.write_object_state_to_sim(object_states, env_ids=env_ids, object_ids=object_ids)
+    if not disable_obstacles:
+        object_ids = torch.arange(num_obstacles, device=device, dtype=torch.long)
+        obstacles.write_object_state_to_sim(object_states, env_ids=env_ids, object_ids=object_ids)
     if debug_vis:
         _visualize_local_nav_reference(env, num_points=debug_vis_num_points, ds=debug_vis_ds)
+
+
+def _ensure_blocked_recovery_buffers(env: ManagerBasedEnv):
+    device = env.device
+    if hasattr(env, "_blocked_recovery_scenario_id") and env._blocked_recovery_scenario_id.shape[0] == env.num_envs:
+        return
+    env._blocked_recovery_scenario_id = torch.zeros(env.num_envs, dtype=torch.long, device=device)
+    env._blocked_recovery_start_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_prev_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_delta_x = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_no_progress_steps = torch.zeros(env.num_envs, dtype=torch.long, device=device)
+    env._blocked_recovery_slip_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_contact_duration = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+    env._blocked_recovery_energy_proxy = torch.zeros(env.num_envs, dtype=torch.float32, device=device)
+
+
+def reset_blocked_recovery_task(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor | None,
+    asset_cfg: SceneEntityCfg,
+    obstacle_asset_cfg: SceneEntityCfg,
+    scenario_weights: tuple[float, float, float] = (1.0, 0.0, 0.0),
+    start_x_range: tuple[float, float] = (-0.08, 0.08),
+    start_y_range: tuple[float, float] = (-0.05, 0.05),
+    heading_range: tuple[float, float] = (-0.04, 0.04),
+    start_speed_range: tuple[float, float] = (0.0, 0.03),
+    root_z: float = 0.18,
+    curb_x_range: tuple[float, float] = (0.42, 0.55),
+    belly_x_range: tuple[float, float] = (0.30, 0.45),
+    success_distance: float = 1.15,
+):
+    """Reset into blocked recovery primitive-selection scenarios.
+
+    Scenario ids:
+    0 curb_momentum_loss, 1 belly_high_center, 2 low_traction_duration.
+    First training stage can pass weights=(1,0,0) to use curb only.
+    """
+    _ensure_blocked_recovery_buffers(env)
+    if env_ids is None or isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    elif not isinstance(env_ids, torch.Tensor):
+        env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
+    else:
+        env_ids = env_ids.to(device=env.device, dtype=torch.long)
+
+    robot = env.scene[asset_cfg.name]
+    obstacles: RigidObjectCollection = env.scene[obstacle_asset_cfg.name]
+    num_obstacles = obstacles.num_objects
+    device = env.device
+    rng = np.random.default_rng()
+
+    weights = np.asarray(scenario_weights, dtype=np.float64)
+    if weights.size != 3 or np.sum(weights) <= 0:
+        raise ValueError("scenario_weights must contain three non-negative values with positive sum.")
+    weights = weights / np.sum(weights)
+
+    root_pose = robot.data.default_root_state[env_ids, :7].clone()
+    root_vel = torch.zeros((len(env_ids), 6), dtype=torch.float32, device=device)
+    object_states = torch.zeros((len(env_ids), num_obstacles, 13), dtype=torch.float32, device=device)
+    object_states[:, :, 2] = -10.0
+    object_states[:, :, 3] = 1.0
+
+    env_origins = env.scene.env_origins if hasattr(env.scene, "env_origins") else torch.zeros((env.num_envs, 3), device=device)
+    for local_idx, env_id_tensor in enumerate(env_ids):
+        env_id = int(env_id_tensor.item())
+        scenario_id = int(rng.choice(3, p=weights))
+        x0 = float(rng.uniform(*start_x_range))
+        y0 = float(rng.uniform(*start_y_range))
+        yaw = torch.tensor(float(rng.uniform(*heading_range)), device=device)
+        speed = float(rng.uniform(*start_speed_range))
+        origin = env_origins[env_id]
+
+        quat = math_utils.quat_from_euler_xyz(
+            torch.tensor([0.0], device=device),
+            torch.tensor([0.0], device=device),
+            yaw.unsqueeze(0),
+        )[0]
+        root_pose[local_idx, :3] = torch.tensor([x0, y0, float(root_z)], device=device) + origin
+        root_pose[local_idx, 3:7] = quat
+        root_vel[local_idx, 0] = speed * torch.cos(yaw)
+        root_vel[local_idx, 1] = speed * torch.sin(yaw)
+
+        env._blocked_recovery_scenario_id[env_id] = scenario_id
+        env._blocked_recovery_start_x[env_id] = x0
+        env._blocked_recovery_prev_x[env_id] = x0
+        env._blocked_recovery_delta_x[env_id] = 0.0
+        env._blocked_recovery_no_progress_steps[env_id] = 0
+        env._blocked_recovery_slip_duration[env_id] = 0.0
+        env._blocked_recovery_contact_duration[env_id] = 0.0
+        env._blocked_recovery_energy_proxy[env_id] = 0.0
+
+        if hasattr(env, "_recovery_action_switch_count"):
+            env._recovery_action_switch_count[env_id] = 0.0
+            env._recovery_invalid_action_count[env_id] = 0.0
+            env._recovery_action_switch_pulse[env_id] = 0.0
+            env._recovery_invalid_action_pulse[env_id] = 0.0
+
+        # Object 0: curb, Object 1: belly/high-center obstacle. Hide inactive objects.
+        if scenario_id == 0 and num_obstacles >= 1:
+            curb_x = float(rng.uniform(*curb_x_range))
+            object_states[local_idx, 0, 0:3] = torch.tensor([curb_x, 0.0, 0.06], device=device) + origin
+            object_states[local_idx, 0, 3:7] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=device)
+        elif scenario_id == 1 and num_obstacles >= 2:
+            belly_x = float(rng.uniform(*belly_x_range))
+            object_states[local_idx, 1, 0:3] = torch.tensor([belly_x, 0.0, 0.075], device=device) + origin
+            object_states[local_idx, 1, 3:7] = torch.tensor([1.0, 0.0, 0.0, 0.0], device=device)
+        # scenario 2 uses proprioceptive slip proxies first; no privileged policy input.
+
+    robot.write_root_pose_to_sim(root_pose, env_ids=env_ids)
+    robot.write_root_velocity_to_sim(root_vel, env_ids=env_ids)
+    object_ids = torch.arange(num_obstacles, device=device, dtype=torch.long)
+    obstacles.write_object_state_to_sim(object_states, env_ids=env_ids, object_ids=object_ids)
+    env._blocked_recovery_success_distance = float(success_distance)
+
 
 def generate_random_grid_obstacle_positions(
     env: ManagerBasedEnv,

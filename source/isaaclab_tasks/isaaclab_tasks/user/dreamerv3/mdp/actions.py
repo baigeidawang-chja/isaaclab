@@ -271,3 +271,129 @@ class CarVWActionCfg(AckermannActionCfg):
     max_steer_rate: float = 1.2
     use_thruster_action: bool = False
     thruster_cmd_limit: float = 1.0
+
+
+class RecoveryPrimitiveAction(AckermannAction):
+    """Box(6) primitive selector for blocked recovery.
+
+    The policy still outputs a continuous Box(6), but the action term converts it
+    through argmax into one of six safe motion primitives:
+    continue, slow, reverse, rocking, left escape, right escape.
+    """
+
+    cfg: "RecoveryPrimitiveActionCfg"
+
+    def __init__(self, cfg: "RecoveryPrimitiveActionCfg", env):
+        super().__init__(cfg, env)
+        self._env = env
+        self._raw_actions = torch.zeros(env.num_envs, self.action_dim, device=self.device, dtype=torch.float32)
+        self._processed_actions = torch.zeros(env.num_envs, 2, device=self.device, dtype=torch.float32)
+        self._prev_processed_actions = torch.zeros_like(self._processed_actions)
+        self._current_primitive = torch.full((env.num_envs,), -1, device=self.device, dtype=torch.long)
+        self._primitive_age = torch.zeros(env.num_envs, device=self.device, dtype=torch.long)
+        self._control_dt = float(getattr(env, "step_dt", 1.0))
+        env._recovery_primitive_id = torch.zeros(env.num_envs, device=self.device, dtype=torch.long)
+        env._recovery_raw_primitive_id = torch.zeros(env.num_envs, device=self.device, dtype=torch.long)
+        env._recovery_processed_cmd = torch.zeros(env.num_envs, 2, device=self.device, dtype=torch.float32)
+        env._recovery_action_switch_count = torch.zeros(env.num_envs, device=self.device, dtype=torch.float32)
+        env._recovery_invalid_action_count = torch.zeros(env.num_envs, device=self.device, dtype=torch.float32)
+        env._recovery_action_switch_pulse = torch.zeros(env.num_envs, device=self.device, dtype=torch.float32)
+        env._recovery_invalid_action_pulse = torch.zeros(env.num_envs, device=self.device, dtype=torch.float32)
+
+    @property
+    def action_dim(self) -> int:
+        return 6
+
+    def process_actions(self, actions: torch.Tensor):
+        self._raw_actions[:] = actions
+        if hasattr(self._env, "episode_length_buf"):
+            reset_mask = self._env.episode_length_buf <= 1
+            if reset_mask.any():
+                self._current_primitive[reset_mask] = -1
+                self._primitive_age[reset_mask] = 0
+                self._prev_processed_actions[reset_mask] = 0.0
+        desired = torch.argmax(actions, dim=-1).to(dtype=torch.long)
+        self._env._recovery_raw_primitive_id[:] = desired
+
+        first = self._current_primitive < 0
+        can_switch = self._primitive_age >= int(self.cfg.min_steps_between_switch)
+        wants_switch = desired != self._current_primitive
+        allowed_switch = first | (wants_switch & can_switch)
+        blocked_switch = wants_switch & (~can_switch) & (~first)
+
+        self._env._recovery_action_switch_pulse[:] = (allowed_switch & (~first)).float()
+        self._env._recovery_invalid_action_pulse[:] = blocked_switch.float()
+        self._env._recovery_action_switch_count += self._env._recovery_action_switch_pulse
+        self._env._recovery_invalid_action_count += self._env._recovery_invalid_action_pulse
+
+        self._current_primitive = torch.where(allowed_switch, desired, self._current_primitive)
+        self._primitive_age = torch.where(allowed_switch, torch.zeros_like(self._primitive_age), self._primitive_age + 1)
+        self._env._recovery_primitive_id[:] = self._current_primitive.clamp(min=0)
+
+        velocity = torch.zeros(actions.shape[0], device=self.device, dtype=torch.float32)
+        steering = torch.zeros_like(velocity)
+        primitive = self._current_primitive.clamp(min=0)
+
+        velocity = torch.where(primitive == 0, torch.full_like(velocity, float(self.cfg.continue_speed)), velocity)
+        velocity = torch.where(primitive == 1, torch.full_like(velocity, float(self.cfg.slow_speed)), velocity)
+        velocity = torch.where(primitive == 2, torch.full_like(velocity, -float(self.cfg.reverse_speed)), velocity)
+
+        half_period = max(1, int(self.cfg.rocking_half_period_steps))
+        rocking_forward = ((self._primitive_age // half_period) % 2) == 0
+        rocking_velocity = torch.where(
+            rocking_forward,
+            torch.full_like(velocity, float(self.cfg.rocking_forward_speed)),
+            torch.full_like(velocity, -float(self.cfg.rocking_reverse_speed)),
+        )
+        velocity = torch.where(primitive == 3, rocking_velocity, velocity)
+
+        velocity = torch.where(primitive == 4, torch.full_like(velocity, float(self.cfg.escape_speed)), velocity)
+        steering = torch.where(primitive == 4, torch.full_like(steering, float(self.cfg.escape_steer)), steering)
+        velocity = torch.where(primitive == 5, torch.full_like(velocity, float(self.cfg.escape_speed)), velocity)
+        steering = torch.where(primitive == 5, torch.full_like(steering, -float(self.cfg.escape_steer)), steering)
+
+        processed = torch.stack(
+            [
+                torch.clamp(velocity, -float(self.cfg.max_speed), float(self.cfg.max_speed)),
+                torch.clamp(steering, -float(self.cfg.max_steer), float(self.cfg.max_steer)),
+            ],
+            dim=-1,
+        )
+        max_dv = float(self.cfg.max_speed_rate) * self._control_dt
+        max_ds = float(self.cfg.max_steer_rate) * self._control_dt
+        processed[:, 0] = self._prev_processed_actions[:, 0] + torch.clamp(
+            processed[:, 0] - self._prev_processed_actions[:, 0],
+            min=-max_dv,
+            max=max_dv,
+        )
+        processed[:, 1] = self._prev_processed_actions[:, 1] + torch.clamp(
+            processed[:, 1] - self._prev_processed_actions[:, 1],
+            min=-max_ds,
+            max=max_ds,
+        )
+        self._processed_actions[:] = processed
+        self._prev_processed_actions[:] = processed
+        self._env._recovery_processed_cmd[:] = processed
+
+
+@configclass
+class RecoveryPrimitiveActionCfg(AckermannActionCfg):
+    """Primitive recovery action config.
+
+    Input dimension is six continuous logits; the action term selects argmax.
+    """
+
+    class_type: type[ActionTerm] = RecoveryPrimitiveAction
+    min_steps_between_switch: int = 4
+    max_speed: float = 0.55
+    max_steer: float = 0.45
+    max_speed_rate: float = 0.35
+    max_steer_rate: float = 0.8
+    continue_speed: float = 0.45
+    slow_speed: float = 0.18
+    reverse_speed: float = 0.35
+    rocking_forward_speed: float = 0.35
+    rocking_reverse_speed: float = 0.35
+    rocking_half_period_steps: int = 6
+    escape_speed: float = 0.25
+    escape_steer: float = 0.42

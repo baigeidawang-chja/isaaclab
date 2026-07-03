@@ -659,6 +659,49 @@ def get_next_proprio_target(env: ManagerBasedRLEnv) -> torch.Tensor:
     return torch.cat([base_lin_vel, base_ang_vel, wheel_vel, imu_state, contact], dim=-1)
 
 
+def _wheel_linear_speeds(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) -> torch.Tensor:
+    robot = env.scene["robot"]
+    wheel_vel = robot.data.joint_vel[:, :4]
+    return wheel_vel.abs() * float(wheel_radius)
+
+
+def get_wheel_slip_proxy(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) -> torch.Tensor:
+    """Body-only slip proxy from wheel linear speed vs base forward speed.
+
+    Returns [mean_slip, max_slip]. No terrain/scenario privileged state is used.
+    """
+    wheel_speed = _wheel_linear_speeds(env, wheel_radius=wheel_radius)
+    body_speed = env.scene["robot"].data.root_lin_vel_b[:, 0].abs().unsqueeze(-1)
+    slip = torch.clamp((wheel_speed - body_speed).abs() / (body_speed + 0.08), 0.0, 20.0)
+    return torch.stack([slip.mean(dim=-1), slip.max(dim=-1).values], dim=-1)
+
+
+def get_wheel_current_torque_proxy(env: ManagerBasedRLEnv) -> torch.Tensor:
+    """Wheel current proxy from applied torque when available, else wheel acceleration/velocity.
+
+    Returns [mean_proxy, max_proxy], normalized only by clipping to keep scale bounded.
+    """
+    robot = env.scene["robot"]
+    if hasattr(robot.data, "applied_torque") and robot.data.applied_torque is not None:
+        proxy = robot.data.applied_torque[:, :4].abs()
+    elif hasattr(robot.data, "joint_acc") and robot.data.joint_acc is not None:
+        proxy = 0.02 * robot.data.joint_acc[:, :4].abs()
+    else:
+        proxy = 0.05 * robot.data.joint_vel[:, :4].abs()
+    proxy = torch.clamp(proxy, 0.0, 100.0)
+    return torch.stack([proxy.mean(dim=-1), proxy.max(dim=-1).values], dim=-1)
+
+
+def get_front_rear_slip_difference(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) -> torch.Tensor:
+    """Front/rear slip asymmetry proxy, useful for curb and high-center recovery."""
+    wheel_speed = _wheel_linear_speeds(env, wheel_radius=wheel_radius)
+    body_speed = env.scene["robot"].data.root_lin_vel_b[:, 0].abs().unsqueeze(-1)
+    slip = torch.clamp((wheel_speed - body_speed).abs() / (body_speed + 0.08), 0.0, 20.0)
+    front_slip = slip[:, :2].mean(dim=-1)
+    rear_slip = slip[:, 2:4].mean(dim=-1)
+    return (front_slip - rear_slip).unsqueeze(-1)
+
+
 def get_stuck_label(
     env: ManagerBasedRLEnv,
     progress_threshold: float = 0.002,

@@ -171,7 +171,7 @@ class MySceneCfg(InteractiveSceneCfg):
     robot: ArticulationCfg = CAR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # type: ignore[attr-defined]
 
     robot_contact_sensor = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/Car/contact_.*",
+        prim_path="{ENV_REGEX_NS}/Robot/Car/.*wheel",
         history_length=1,
         track_air_time=False,
         update_period=0.0,
@@ -190,6 +190,8 @@ class MySceneCfg(InteractiveSceneCfg):
 @configclass
 class MyWaterlandSceneCfg(MySceneCfg):
     """USD terrain scene for periodic water-land transition experiments."""
+
+    obstacles = None
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
@@ -690,7 +692,7 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
-        self.episode_length_s = 30.0
+        self.episode_length_s = 20.0
         self.sim.render.enable_translucency = True
 
         self.scene.terrain.usd_path = WATERLAND_TERRAIN_USD
@@ -714,6 +716,7 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 1
         self.events.reset_local_nav.params["disable_obstacles"] = True
+        self.events.reset_local_nav.params.pop("obstacle_asset_cfg", None)
         self.events.reset_local_nav.params["debug_vis"] = False
         self.events.reset_local_nav.params["start_idx_range"] = (2.8, 2.8)
         self.events.reset_local_nav.params["waterland_height_reset"] = True

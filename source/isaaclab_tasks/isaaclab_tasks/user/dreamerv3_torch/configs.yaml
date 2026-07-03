@@ -205,3 +205,18 @@ isaaclab_8gb:
   units: 256
   encoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}
   decoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}
+
+blocked_recovery:
+  task: Isaac-Navigation-Car-Dreamer-BlockedRecovery-v0
+  steps: 5e5
+  action_repeat: 1
+  envs: 8
+  time_limit: 200
+  prefill: 1000
+  eval_episode_num: 0
+  video_pred_log: false
+  use_stuck_head: False
+  use_sector_contact_head: False
+  actor: {layers: 2, dist: 'normal', entropy: 3e-4, unimix_ratio: 0.01, std: 'learned', min_std: 0.1, max_std: 1.0, temp: 0.1, lr: 3e-5, eps: 1e-5, grad_clip: 100.0, outscale: 1.0}
+  encoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}
+  decoder: {mlp_keys: '.*', cnn_keys: '$^', mlp_layers: 3, mlp_units: 512}

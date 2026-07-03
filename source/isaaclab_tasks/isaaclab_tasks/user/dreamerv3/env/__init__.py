@@ -144,6 +144,25 @@ gym.register(
 )
 
 gym.register(
+    id="Isaac-Navigation-Car-Dreamer-BlockedRecovery-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.blocked_recovery_env_cfg:MyCarBlockedRecoveryEnvCfg",
+        "dreamer_cfg_entry_point": f"{__name__}.dreamer_agent_cfg:DreamerAgentCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Navigation-Car-Dreamer-BlockedRecovery-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.blocked_recovery_env_cfg:MyCarBlockedRecoveryEnvCfg_PLAY",
+    },
+)
+
+gym.register(
     id="Isaac-Dreamer-Smoke-Cartpole-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
