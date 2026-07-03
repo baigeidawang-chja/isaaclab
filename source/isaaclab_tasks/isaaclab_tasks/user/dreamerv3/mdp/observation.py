@@ -20,6 +20,31 @@ if TYPE_CHECKING:
 CONTACT_SENSOR_ANGLES_DEG = (0.0, 33.7, 146.3, 180.0, 213.7, 326.3)
 
 
+def _finite_tensor(tensor: torch.Tensor, min_value: float = -1.0e6, max_value: float = 1.0e6) -> torch.Tensor:
+    """Return a finite, bounded tensor for policy observations."""
+    return torch.nan_to_num(tensor, nan=0.0, posinf=max_value, neginf=min_value).clamp(min_value, max_value)
+
+
+def get_base_lin_vel_safe(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    return _finite_tensor(env.scene[asset_cfg.name].data.root_lin_vel_b)
+
+
+def get_base_ang_vel_safe(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    return _finite_tensor(env.scene[asset_cfg.name].data.root_ang_vel_b)
+
+
+def get_projected_gravity_safe(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    return _finite_tensor(env.scene[asset_cfg.name].data.projected_gravity_b)
+
+
+def get_joint_vel_safe(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset = env.scene[asset_cfg.name]
+    joint_vel = asset.data.joint_vel
+    if asset_cfg.joint_ids is not None:
+        joint_vel = joint_vel[:, asset_cfg.joint_ids]
+    return _finite_tensor(joint_vel)
+
+
 def get_contact_sensor_feedback(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Return max contact force and binary contact flag."""
     sensor = env.scene.sensors.get("robot_contact_sensor", None)
@@ -40,7 +65,7 @@ def get_contact_sensor_feedback(env: ManagerBasedRLEnv) -> torch.Tensor:
     force_mag = torch.norm(forces, dim=-1)
     max_force, _ = torch.max(force_mag, dim=1)
     contact_flag = (max_force > 1e-3).float()
-    return torch.stack([max_force, contact_flag], dim=-1)
+    return _finite_tensor(torch.stack([max_force, contact_flag], dim=-1))
 
 
 def _angle_to_sector(angle_rad: torch.Tensor, num_sectors: int) -> torch.Tensor:
@@ -230,7 +255,7 @@ def get_imu_state(env: ManagerBasedRLEnv) -> torch.Tensor:
     data = imu.data
     quat = data.quat_w
     roll, pitch, _yaw = math_utils.euler_xyz_from_quat(quat)
-    return torch.cat(
+    return _finite_tensor(torch.cat(
         [
             data.lin_acc_b,
             data.ang_vel_b,
@@ -238,7 +263,7 @@ def get_imu_state(env: ManagerBasedRLEnv) -> torch.Tensor:
             pitch.unsqueeze(-1),
         ],
         dim=-1,
-    )
+    ))
 
 
 def _local_nav_state(env: ManagerBasedRLEnv):
@@ -661,7 +686,7 @@ def get_next_proprio_target(env: ManagerBasedRLEnv) -> torch.Tensor:
 
 def _wheel_linear_speeds(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) -> torch.Tensor:
     robot = env.scene["robot"]
-    wheel_vel = robot.data.joint_vel[:, :4]
+    wheel_vel = _finite_tensor(robot.data.joint_vel[:, :4])
     return wheel_vel.abs() * float(wheel_radius)
 
 
@@ -671,9 +696,9 @@ def get_wheel_slip_proxy(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) ->
     Returns [mean_slip, max_slip]. No terrain/scenario privileged state is used.
     """
     wheel_speed = _wheel_linear_speeds(env, wheel_radius=wheel_radius)
-    body_speed = env.scene["robot"].data.root_lin_vel_b[:, 0].abs().unsqueeze(-1)
+    body_speed = _finite_tensor(env.scene["robot"].data.root_lin_vel_b[:, 0]).abs().unsqueeze(-1)
     slip = torch.clamp((wheel_speed - body_speed).abs() / (body_speed + 0.08), 0.0, 20.0)
-    return torch.stack([slip.mean(dim=-1), slip.max(dim=-1).values], dim=-1)
+    return _finite_tensor(torch.stack([slip.mean(dim=-1), slip.max(dim=-1).values], dim=-1))
 
 
 def get_wheel_current_torque_proxy(env: ManagerBasedRLEnv) -> torch.Tensor:
@@ -683,23 +708,23 @@ def get_wheel_current_torque_proxy(env: ManagerBasedRLEnv) -> torch.Tensor:
     """
     robot = env.scene["robot"]
     if hasattr(robot.data, "applied_torque") and robot.data.applied_torque is not None:
-        proxy = robot.data.applied_torque[:, :4].abs()
+        proxy = _finite_tensor(robot.data.applied_torque[:, :4]).abs()
     elif hasattr(robot.data, "joint_acc") and robot.data.joint_acc is not None:
-        proxy = 0.02 * robot.data.joint_acc[:, :4].abs()
+        proxy = 0.02 * _finite_tensor(robot.data.joint_acc[:, :4]).abs()
     else:
-        proxy = 0.05 * robot.data.joint_vel[:, :4].abs()
+        proxy = 0.05 * _finite_tensor(robot.data.joint_vel[:, :4]).abs()
     proxy = torch.clamp(proxy, 0.0, 100.0)
-    return torch.stack([proxy.mean(dim=-1), proxy.max(dim=-1).values], dim=-1)
+    return _finite_tensor(torch.stack([proxy.mean(dim=-1), proxy.max(dim=-1).values], dim=-1))
 
 
 def get_front_rear_slip_difference(env: ManagerBasedRLEnv, wheel_radius: float = 0.035) -> torch.Tensor:
     """Front/rear slip asymmetry proxy, useful for curb and high-center recovery."""
     wheel_speed = _wheel_linear_speeds(env, wheel_radius=wheel_radius)
-    body_speed = env.scene["robot"].data.root_lin_vel_b[:, 0].abs().unsqueeze(-1)
+    body_speed = _finite_tensor(env.scene["robot"].data.root_lin_vel_b[:, 0]).abs().unsqueeze(-1)
     slip = torch.clamp((wheel_speed - body_speed).abs() / (body_speed + 0.08), 0.0, 20.0)
     front_slip = slip[:, :2].mean(dim=-1)
     rear_slip = slip[:, 2:4].mean(dim=-1)
-    return (front_slip - rear_slip).unsqueeze(-1)
+    return _finite_tensor((front_slip - rear_slip).unsqueeze(-1))
 
 
 def get_stuck_label(

@@ -80,7 +80,7 @@ _ZERO_INIT_STATES = ArticulationCfg.InitialStateCfg(
 
 CAR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/chja/myproject/car_no_damper_03.usd",
+        usd_path="/home/chja/myproject/car_no_damper_04.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             max_linear_velocity=10.0, # m/s
             max_angular_velocity=10.0, # deg/s

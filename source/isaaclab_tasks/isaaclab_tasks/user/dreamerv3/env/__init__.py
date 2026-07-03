@@ -150,6 +150,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.blocked_recovery_env_cfg:MyCarBlockedRecoveryEnvCfg",
         "dreamer_cfg_entry_point": f"{__name__}.dreamer_agent_cfg:DreamerAgentCfg",
+        "skrl_cfg_entry_point": "isaaclab_tasks.user.dreamerv3.agents:skrl_blocked_recovery_ppo_cfg.yaml",
     },
 )
 
@@ -159,6 +160,7 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.blocked_recovery_env_cfg:MyCarBlockedRecoveryEnvCfg_PLAY",
+        "skrl_cfg_entry_point": "isaaclab_tasks.user.dreamerv3.agents:skrl_blocked_recovery_ppo_cfg.yaml",
     },
 )
 
