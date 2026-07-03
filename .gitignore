@@ -68,7 +68,6 @@ __pycache__/
 *.pyd
 .venv/
 venv/
-env/
 .env
 *.env
 _isaac_sim/
