@@ -46,6 +46,22 @@ def imu_state(env) -> torch.Tensor:
     return _finite(torch.cat([data.lin_acc_b, data.ang_vel_b, roll.unsqueeze(-1), pitch.unsqueeze(-1)], dim=-1))
 
 
+def executed_action(env, action_term_name: str = "throttle_steer") -> torch.Tensor:
+    """Return the physical action executed by the rate-limited action term."""
+    fallback = torch.zeros_like(env.action_manager.action)
+    try:
+        action_term = env.action_manager.get_term(action_term_name)
+    except (AttributeError, KeyError):
+        return fallback
+
+    action = getattr(action_term, "processed_actions", None)
+    if action is None:
+        action = getattr(action_term, "previous_executed_action", None)
+    if action is None:
+        return fallback
+    return _finite(action)
+
+
 def wheel_slip_proxy(env, wheel_radius: float = 0.035) -> torch.Tensor:
     wheel_speed = torch.abs(env.scene["robot"].data.joint_vel[:, :4]) * float(wheel_radius)
     body_speed = torch.abs(env.scene["robot"].data.root_lin_vel_b[:, 0]).unsqueeze(-1)
@@ -89,4 +105,3 @@ def abort_required_label(env) -> torch.Tensor:
 
 def continue_feasible_label(env) -> torch.Tensor:
     return (1.0 - abort_required_label(env)).clamp(0.0, 1.0)
-

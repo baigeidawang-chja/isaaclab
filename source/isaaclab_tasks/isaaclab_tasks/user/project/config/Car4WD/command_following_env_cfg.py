@@ -63,7 +63,7 @@ class CommandsCfg:
 
     planner_command = FailureAwareCommandCfg(
         asset_name="robot",
-        resampling_time_range=(8.0, 8.0),
+        resampling_time_range=(100.0, 100.0),
         v_plan_range=(0.35, 1.20),
         heading_plan_range=(0.0, 0.0),
         debug_vis=False,
@@ -112,7 +112,7 @@ class ObservationsCfg:
         )
         projected_gravity = ObsTerm(func=observations.projected_gravity, noise=Unoise(n_min=-0.02, n_max=0.02))
         imu_state = ObsTerm(func=observations.imu_state)
-        actions = ObsTerm(func=mdp.last_action)
+        executed_action = ObsTerm(func=observations.executed_action)
 
         def __post_init__(self):
             self.enable_corruption = True
