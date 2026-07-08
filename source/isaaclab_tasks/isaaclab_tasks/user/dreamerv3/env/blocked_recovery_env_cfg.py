@@ -282,7 +282,7 @@ class CommandsCfg:
 class MyCarBlockedRecoveryEnvCfg(ManagerBasedRLEnvCfg):
     """First-stage blocked recovery task: curb momentum loss only."""
 
-    scene: BlockedRecoverySceneCfg = BlockedRecoverySceneCfg(num_envs=1, env_spacing=5.0)
+    scene: BlockedRecoverySceneCfg = BlockedRecoverySceneCfg(num_envs=1, env_spacing=2.50)
     observations: BlockedRecoveryObservationsCfg = BlockedRecoveryObservationsCfg()
     actions: BlockedRecoveryActionsCfg = BlockedRecoveryActionsCfg()
     commands: CommandsCfg = CommandsCfg()
