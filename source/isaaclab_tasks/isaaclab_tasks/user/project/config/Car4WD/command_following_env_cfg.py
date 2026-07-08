@@ -17,10 +17,9 @@ from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab_assets import CAR_CFG
 
-from isaaclab_tasks.manager_based.navigation.mdp.actions import CarVWActionCfg
-
 from ...mdp import FailureAwareCommandCfg
-from ...mdp import observations, rewards, terminations
+from ...mdp import events, observations, rewards, terminations
+from ...mdp.actions import RateLimitedCarVWActionCfg
 
 
 WHEEL_JOINTS = [
@@ -75,7 +74,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Car action interface: forward velocity command and steering command."""
 
-    throttle_steer = CarVWActionCfg(
+    throttle_steer = RateLimitedCarVWActionCfg(
         wheel_joint_names=[
             "joint_front_right_wheel_link_wheel",
             "joint_front_left_wheel_link_wheel",
@@ -94,6 +93,9 @@ class ActionsCfg:
         bounding_strategy="clip",
         asset_name="robot",
         no_reverse=False,
+        max_v_rate=2.0,
+        max_steer_rate=2.0,
+        reset_to_zero=True,
     )
 
 
@@ -148,6 +150,12 @@ class EventCfg:
         params={"position_range": (1.0, 1.0), "velocity_range": (0.0, 0.0)},
     )
 
+    reset_runtime_buffers = EventTerm(
+        func=events.reset_runtime_buffers,
+        mode="reset",
+        params={},
+    )
+
 
 @configclass
 class RewardsCfg:
@@ -161,7 +169,6 @@ class RewardsCfg:
         weight=1.0,
         params={"command_name": "planner_command", "std": 0.35},
     )
-    action_rate = RewTerm(func=rewards.action_rate_penalty, weight=1.0, params={"scale": 0.01})
     yaw_rate = RewTerm(func=rewards.yaw_rate_penalty, weight=0.1, params={"scale": 0.25})
     lateral_velocity = RewTerm(func=rewards.lateral_velocity_penalty, weight=0.1, params={"scale": 0.5})
 
@@ -210,4 +217,3 @@ class CommandFollowingEnvCfg_PLAY(CommandFollowingEnvCfg):
         self.scene.num_envs = 16
         self.scene.env_spacing = 3.0
         self.observations.policy.enable_corruption = False
-

@@ -4,7 +4,7 @@ models:
   separate: False
   policy:
     class: GaussianMixin
-    clip_actions: False
+    clip_actions: True
     clip_log_std: True
     min_log_std: -20.0
     max_log_std: 2.0

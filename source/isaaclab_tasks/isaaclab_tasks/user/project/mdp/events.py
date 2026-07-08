@@ -9,6 +9,33 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import math as math_utils
 
 
+def _resolve_env_ids(env: ManagerBasedEnv, env_ids: torch.Tensor | None) -> torch.Tensor:
+    if env_ids is None or isinstance(env_ids, slice):
+        return torch.arange(env.num_envs, device=env.device)
+    if not isinstance(env_ids, torch.Tensor):
+        return torch.tensor(env_ids, device=env.device, dtype=torch.long)
+    return env_ids.to(device=env.device, dtype=torch.long)
+
+
+def reset_runtime_buffers(env: ManagerBasedEnv, env_ids: torch.Tensor | None):
+    """Clear per-episode runtime buffers such as previous action."""
+    env_ids = _resolve_env_ids(env, env_ids)
+
+    if hasattr(env, "action_manager"):
+        action = env.action_manager.action
+        if not hasattr(env, "_failure_aware_prev_action") or env._failure_aware_prev_action.shape != action.shape:
+            env._failure_aware_prev_action = torch.zeros_like(action)
+        else:
+            env._failure_aware_prev_action[env_ids] = 0.0
+        for term_name in env.action_manager.active_terms:
+            term = env.action_manager.get_term(term_name)
+            if hasattr(term, "reset"):
+                term.reset(env_ids=env_ids)
+
+    if hasattr(env, "_failure_aware_no_progress_steps"):
+        env._failure_aware_no_progress_steps[env_ids] = 0
+
+
 def reset_failure_aware_task(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor | None,
@@ -28,12 +55,7 @@ def reset_failure_aware_task(
     The low-traction region is a first-version placeholder. It is intentionally not
     exposed to policy observations; only labels may infer heuristic risk from body response.
     """
-    if env_ids is None or isinstance(env_ids, slice):
-        env_ids = torch.arange(env.num_envs, device=env.device)
-    elif not isinstance(env_ids, torch.Tensor):
-        env_ids = torch.tensor(env_ids, device=env.device, dtype=torch.long)
-    else:
-        env_ids = env_ids.to(device=env.device, dtype=torch.long)
+    env_ids = _resolve_env_ids(env, env_ids)
 
     robot = env.scene[asset_cfg.name]
     obstacles: RigidObjectCollection = env.scene[obstacle_asset_cfg.name]
@@ -91,4 +113,3 @@ def reset_failure_aware_task(
         env_ids=env_ids,
         object_ids=torch.arange(num_objects, device=device, dtype=torch.long),
     )
-

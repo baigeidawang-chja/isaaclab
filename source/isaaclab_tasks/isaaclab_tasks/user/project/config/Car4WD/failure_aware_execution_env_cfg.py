@@ -184,6 +184,11 @@ class EventCfg:
         mode="reset",
         params={"position_range": (1.0, 1.0), "velocity_range": (0.0, 0.0)},
     )
+    reset_runtime_buffers = EventTerm(
+        func=events.reset_runtime_buffers,
+        mode="reset",
+        params={},
+    )
 
 
 @configclass
