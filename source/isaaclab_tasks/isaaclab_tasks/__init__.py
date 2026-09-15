@@ -33,3 +33,4 @@ import_packages(__name__, _BLACKLIST_PKGS)
 # not discovered reliably by the recursive package importer.
 import isaaclab_tasks.user.dreamerv3.env  # noqa: F401, E402
 import isaaclab_tasks.user.project.config.Car4WD  # noqa: F401, E402
+import isaaclab_tasks.user.traction_protective_control.config.car4wd  # noqa: F401, E402
