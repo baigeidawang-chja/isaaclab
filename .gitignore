@@ -89,3 +89,11 @@ teacher_rollouts/
 isaac_lab_learning/
 .DS_Store
 Thumbs.db
+# Agent-local configuration and transient runs
+agent/agent.env
+runs/agent/
+agent/status/
+# Agent-local configuration and transient runs
+agent/agent.env
+runs/agent/
+agent/status/

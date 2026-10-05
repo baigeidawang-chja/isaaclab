@@ -63,7 +63,7 @@ class CommandsCfg:
 
     planner_command = PlannerCommandCfg(
         asset_name="robot",
-        resampling_time_range=(6.0, 10.0),
+        resampling_time_range=(50.0, 50.0),
         desired_speed_range=(0.3, 1.2),
         desired_heading_range=(-0.4, 0.4),
         debug_vis=False,

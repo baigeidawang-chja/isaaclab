@@ -1,0 +1,4 @@
+# Agent-local configuration and transient runs
+agent/agent.env
+runs/agent/
+agent/status/
