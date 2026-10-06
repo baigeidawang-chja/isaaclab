@@ -22,7 +22,7 @@ check_skrl_layout
 if [[ -z "${CHECKPOINT:-}" ]]; then
   echo "CHECKPOINT is required." >&2
   echo "Example:" >&2
-  echo "  CHECKPOINT=logs/skrl/.../checkpoints/agent_XXXXX.pt ./scripts/agent_eval.sh" >&2
+  echo "  CHECKPOINT=/media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_command_follow/<run>/checkpoints/agent_XXXXX.pt ./scripts/agent_eval.sh" >&2
   exit 2
 fi
 

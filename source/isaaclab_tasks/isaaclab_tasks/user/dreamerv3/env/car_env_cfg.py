@@ -274,8 +274,8 @@ class AmphibiousActionsCfg(ActionsCfg):
         base_length=2.035 / 5,
         base_width=1.1673 / 5,
         wheel_radius=0.035,
-        scale=(1.2, 0.6, 1.0),
-        offset=(0.0, 0.0, 0.0),
+        # scale=(1.2, 0.6, 1.0),
+        # offset=(0.0, 0.0, 0.0),
         bounding_strategy="clip",
         use_rate_limit=True,
         max_speed_rate=0.2,
@@ -716,7 +716,6 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
 
         self.events.reset_local_nav.params["fixed_path_id"] = 1
         self.events.reset_local_nav.params["disable_obstacles"] = True
-        self.events.reset_local_nav.params.pop("obstacle_asset_cfg", None)
         self.events.reset_local_nav.params["debug_vis"] = False
         self.events.reset_local_nav.params["start_idx_range"] = (2.8, 2.8)
         self.events.reset_local_nav.params["waterland_height_reset"] = True
@@ -737,9 +736,9 @@ class MyCarWaterlandAmphibiousEnvCfg(MyCarAmphibiousEnvCfg):
         self.rewards.speed_tracking.weight = 0.0
         self.rewards.time_penalty.weight = 0.0
 
-        self.terminations.progress_state_tick = None
-        self.terminations.target_too_far = None
-        self.terminations.local_goal_reached = None
+        # self.terminations.progress_state_tick = None
+        # self.terminations.target_too_far = None
+        # self.terminations.local_goal_reached = None
 
 
 @configclass

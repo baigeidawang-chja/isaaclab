@@ -72,4 +72,4 @@ esac
 
 echo "$LOGDIR" > "$AGENT_DIR/status/last_smoke_run.txt"
 echo "console_log=$CONSOLE_LOG"
-echo "Note: skrl checkpoints/training metrics are written by skrl_ppo_cfg.yaml under logs/skrl/..."
+echo "Note: skrl outputs are under /media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_command_follow"

@@ -218,3 +218,6 @@ class CommandFollowEnvCfg_PLAY(CommandFollowEnvCfg):
         self.commands.planner_command.desired_speed_range = (0.6, 0.8)
         self.commands.planner_command.desired_heading_range = (0.0, 0.0)
         self.observations.policy.enable_corruption = False
+
+        self.episode_length_s = 30.0
+        self.terminations.out_of_bounds.params = {"x_min": -2000.0, "x_max": 2000.0, "y_min": -1000.0, "y_max": 1000.0}

@@ -65,6 +65,6 @@ echo "$LOGDIR" > "$AGENT_DIR/status/last_short_run.txt"
 echo
 echo "Next:"
 echo "  1. Inspect the console log: $CONSOLE_LOG"
-echo "  2. Inspect the skrl run under logs/skrl/<directory from skrl_ppo_cfg.yaml>/..."
+echo "  2. Inspect the skrl run under /media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_command_follow/..."
 echo "  3. Check speed tracking, heading tracking, stability, and action smoothness trends."
 echo "  4. Run agent_eval.sh only after a usable skrl checkpoint exists."

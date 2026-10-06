@@ -36,10 +36,9 @@ agent:
   mini_batches: 4
   discount_factor: 0.99
   lambda: 0.95
-  learning_rate: 1.0e-03
-  learning_rate_scheduler: KLAdaptiveLR
-  learning_rate_scheduler_kwargs:
-    kl_threshold: 0.01
+  learning_rate: 3.0e-04
+  learning_rate_scheduler: null
+  learning_rate_scheduler_kwargs: null
   state_preprocessor: null
   state_preprocessor_kwargs: null
   value_preprocessor: RunningStandardScaler
@@ -54,9 +53,9 @@ agent:
   value_loss_scale: 1.0
   kl_threshold: 0.0
   rewards_shaper_scale: 1.0
-  time_limit_bootstrap: False
+  time_limit_bootstrap: True
   experiment:
-    directory: "traction_protective_control_command_follow"
+    directory: "/media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_command_follow"
     experiment_name: ""
     write_interval: auto
     checkpoint_interval: auto
@@ -65,6 +64,7 @@ agent:
       project: "isaaclab-traction-protective-control-command-follow"
       entity: null
       mode: "online"
+      dir: "/media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_command_follow/wandb_local"
       sync_tensorboard: True
 
 trainer:

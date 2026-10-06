@@ -14,7 +14,6 @@ TASK="${TASK:-Isaac-TractionProtect-CommandFollow-Car4WD-v0}"
 EVAL_TASK="${EVAL_TASK:-Isaac-TractionProtect-CommandFollow-Car4WD-Play-v0}"
 ALGORITHM="${ALGORITHM:-PPO}"
 ML_FRAMEWORK="${ML_FRAMEWORK:-torch}"
-AGENT_ENTRY_POINT="${AGENT_ENTRY_POINT:-}"
 SEED="${SEED:-}"
 
 ISAACLAB_SH="${ISAACLAB_SH:-isaaclab.sh}"
@@ -79,6 +78,7 @@ check_task_registered() {
 import os
 import gymnasium as gym
 import isaaclab_tasks  # noqa: F401
+import isaaclab_tasks.user.traction_protective_control.config.car4wd  # noqa: F401
 
 task = os.environ["TASK_TO_CHECK"]
 try:
@@ -92,9 +92,6 @@ print(f"Task registered: {spec.id}")
 append_skrl_selection_args() {
   local -n cmd_ref="$1"
   cmd_ref+=(--algorithm "$ALGORITHM" --ml_framework "$ML_FRAMEWORK")
-  if [[ -n "$AGENT_ENTRY_POINT" ]]; then
-    cmd_ref+=(--agent "$AGENT_ENTRY_POINT")
-  fi
   if [[ -n "$SEED" ]]; then
     cmd_ref+=(--seed "$SEED")
   fi
@@ -117,11 +114,6 @@ print_context() {
   echo "eval_task=$EVAL_TASK"
   echo "algorithm=$ALGORITHM"
   echo "ml_framework=$ML_FRAMEWORK"
-  if [[ -n "$AGENT_ENTRY_POINT" ]]; then
-    echo "agent_entry_point=$AGENT_ENTRY_POINT"
-  else
-    echo "agent_entry_point=<default skrl_cfg_entry_point for PPO>"
-  fi
   echo "agent_log_root=$RUN_ROOT"
 }
 
