@@ -76,14 +76,14 @@ class ActionsCfg:
 
     throttle_steer = RateLimitedCarVWActionCfg(
         wheel_joint_names=[
-            "joint_front_right_wheel_link_wheel",
-            "joint_front_left_wheel_link_wheel",
-            "joint_back_right_wheel_link_wheel",
             "joint_back_left_wheel_link_wheel",
+            "joint_back_right_wheel_link_wheel",
+            "joint_front_left_wheel_link_wheel",
+            "joint_front_right_wheel_link_wheel",
         ],
         steering_joint_names=[
-            "joint_front_right_steer",
             "joint_front_left_steer",
+            "joint_front_right_steer",
         ],
         base_length=2.035 / 5,
         base_width=1.1673 / 5,
@@ -110,7 +110,7 @@ class ObservationsCfg:
         imu_state = ObsTerm(func=observations.imu_state)
         wheel_vel = ObsTerm(
             func=observations.wheel_vel,
-            params={"asset_cfg": SceneEntityCfg("robot", joint_names=WHEEL_JOINTS)},
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=WHEEL_JOINTS, preserve_order=True)},
         )
         executed_action = ObsTerm(func=observations.executed_action)
 
@@ -163,7 +163,8 @@ class RewardsCfg:
     heading_tracking = RewTerm(
         func=rewards.heading_tracking,
         weight=1.0,
-        params={"command_name": "planner_command", "std": 0.35},
+        # params={"command_name": "planner_command", "std": 0.35},
+        params={"command_name": "planner_command", "std": 0.15},
     )
     upright_stability = RewTerm(func=rewards.upright_stability, weight=0.5, params={"scale": 1.0})
     action_smoothness = RewTerm(func=rewards.action_smoothness, weight=1.0, params={"scale": 0.02})
@@ -217,6 +218,7 @@ class CommandFollowEnvCfg_PLAY(CommandFollowEnvCfg):
         self.commands.planner_command.resampling_time_range = (100.0, 100.0)
         self.commands.planner_command.desired_speed_range = (0.6, 0.8)
         self.commands.planner_command.desired_heading_range = (0.0, 0.0)
+        self.commands.planner_command.debug_vis = True
         self.observations.policy.enable_corruption = False
 
         self.episode_length_s = 30.0

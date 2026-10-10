@@ -16,6 +16,18 @@ class RateLimitedCarVWAction(AckermannAction):
 
     def __init__(self, cfg: "RateLimitedCarVWActionCfg", env):
         super().__init__(cfg, env)
+        # AckermannAction emits [rear-left, rear-right, front-left, front-right]
+        # wheel targets and [front-left, front-right] steering targets.
+        self._wheel_ids, self._wheel_names = self._asset.find_joints(
+            cfg.wheel_joint_names, preserve_order=True
+        )
+        self._steering_ids, self._steering_names = self._asset.find_joints(
+            cfg.steering_joint_names, preserve_order=True
+        )
+        if len(self._wheel_ids) != 4 or len(self._steering_ids) != 2:
+            raise ValueError(
+                "RateLimitedCarVWAction requires four ordered wheel joints and two ordered steering joints."
+            )
         self._processed_actions = torch.zeros(env.num_envs, self.action_dim, device=self.device)
         self._previous_executed_action = torch.zeros_like(self._processed_actions)
         self._previous_target_action = torch.zeros_like(self._processed_actions)
