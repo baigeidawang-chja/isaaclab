@@ -64,3 +64,23 @@ gym.register(
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_multistep_heading_cfg.yaml",
     },
 )
+
+gym.register(
+    id="Isaac-TractionProtect-CommandFollow-HeadingStep-Car4WD-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.heading_step_env_cfg:HeadingStepEnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_heading_step_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="Isaac-TractionProtect-CommandFollow-HeadingStep-Car4WD-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.heading_step_env_cfg:HeadingStepEnvCfg_PLAY",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_heading_step_cfg.yaml",
+    },
+)
