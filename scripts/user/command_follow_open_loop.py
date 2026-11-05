@@ -8,7 +8,12 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--task", default="Isaac-TractionProtect-CommandFollow-Car4WD-v0")
 parser.add_argument("--speed", type=float, default=0.8, help="Physical forward-speed command in m/s.")
-parser.add_argument("--steer", type=float, default=0.25, help="Physical steering magnitude in rad.")
+parser.add_argument(
+    "--steer",
+    type=float,
+    default=0.22,
+    help="Physical steering magnitude in rad (must not exceed the current 0.243-rad action bound).",
+)
 parser.add_argument("--duration", type=float, default=8.0, help="Duration of each test case in simulation seconds.")
 parser.add_argument("--warmup", type=float, default=3.0, help="Initial interval excluded from steady-state metrics.")
 parser.add_argument("--output", default="/tmp/command_follow_open_loop.csv", help="Per-step CSV output path.")

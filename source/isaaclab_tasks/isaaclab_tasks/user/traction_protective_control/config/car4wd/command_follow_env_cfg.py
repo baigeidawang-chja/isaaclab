@@ -88,7 +88,7 @@ class ActionsCfg:
         base_length=2.035 / 5,
         base_width=1.1673 / 5,
         wheel_radius=0.035,
-        scale=(1.5, 0.8),
+        scale=(1.5, 0.24),
         offset=(0.0, 0.0),
         bounding_strategy="clip",
         asset_name="robot",
@@ -200,6 +200,7 @@ class CommandFollowEnvCfg(ManagerBasedRLEnvCfg):
     events: EventCfg = EventCfg()
 
     def __post_init__(self):
+        
         self.decimation = 5
         self.episode_length_s = 12.0
         self.sim.dt = 0.01

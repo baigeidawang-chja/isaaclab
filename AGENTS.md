@@ -17,7 +17,7 @@ Different research stages may use different algorithms or training stacks, inclu
 
 Do not assume that DreamerV3 is the default algorithm for the repository.
 
----
+***
 
 ## Current development phase
 
@@ -40,7 +40,7 @@ planner command
 
 Do not introduce later-stage traction estimation, failure prediction, or protective-control mechanisms into Phase 1 unless explicitly requested.
 
----
+***
 
 ## Current research namespace
 
@@ -80,7 +80,7 @@ Existing code in those locations may be inspected and reused as references when 
 
 Do not move or delete legacy DreamerV3 or `user/project` code unless explicitly requested.
 
----
+***
 
 ## Current Phase 1 task
 
@@ -96,7 +96,7 @@ These task IDs describe the current development phase only.
 
 Do not treat them as permanent repository-wide task IDs.
 
----
+***
 
 ## Current Phase 1 training stack
 
@@ -145,7 +145,7 @@ Do not interpret this PPO entry point or configuration as a repository-wide algo
 
 If a later task explicitly uses DreamerV3, recurrent PPO, or another algorithm, inspect that task's own training entry point and configuration instead of forcing the skrl PPO workflow onto it.
 
----
+***
 
 ## Phase 1 architecture
 
@@ -163,7 +163,7 @@ Prefer reusing the existing robot model and actuator configuration rather than d
 
 Do not modify the upstream robot asset solely to implement Phase 1 command-following behavior unless necessary.
 
----
+***
 
 ## Commands
 
@@ -202,7 +202,7 @@ Recommended initial interval:
 
 Play configuration may use fixed or narrower commands to make behavior easier to inspect.
 
----
+***
 
 ## Observations
 
@@ -237,7 +237,7 @@ Phase 1 observations must not expose privileged future-stage information such as
 
 If privileged information is required for debugging, keep it outside the policy observation unless explicitly requested.
 
----
+***
 
 ## Actions
 
@@ -270,11 +270,21 @@ joint_front_left_steer
 Initial action configuration:
 
 ```text
-scale = (1.5, 0.8)
+scale = (1.5, 0.243)
 offset = (0.0, 0.0)
 bounding_strategy = "clip"
 no_reverse = False
 ```
+
+The normalized steering action range `[-1, 1]` therefore maps to the virtual
+center-steering range `[-0.243, 0.243] rad`. This is intentionally slightly
+inside the current Ackermann / steering-joint limit of approximately
+`+-0.243874 rad`.
+
+Checkpoints trained with the legacy `0.8 rad` steering scale remain
+shape-compatible, but their normalized steering outputs no longer have the
+same physical meaning. Treat them as initialization candidates only, not as
+behaviorally equivalent checkpoints or directly comparable baselines.
 
 Do not remove reverse capability.
 
@@ -287,7 +297,7 @@ The action space should preserve future ability to:
 
 Prefer rate limiting after action bounding so the actual executed action remains physically meaningful and inspectable.
 
----
+***
 
 ## Rewards
 
@@ -332,7 +342,7 @@ Phase 1 must not include rewards for:
 
 unless explicitly requested.
 
----
+***
 
 ## Terminations
 
@@ -359,7 +369,7 @@ Phase 1 must not introduce:
 
 unless explicitly requested.
 
----
+***
 
 ## Phase boundaries
 
@@ -411,7 +421,7 @@ Establish a stable MLP-PPO baseline first.
 
 Use recurrence only when there is evidence that partial observability or temporal inference requires it.
 
----
+***
 
 ## Reuse policy
 
@@ -435,7 +445,7 @@ Reuse should mean:
 
 Do not blindly copy entire old modules.
 
----
+***
 
 ## Legacy-code boundaries
 
@@ -492,7 +502,7 @@ Do not introduce:
 
 into CommandFollow.
 
----
+***
 
 ## Working rules
 
@@ -521,7 +531,7 @@ git diff
 
 Do not refactor unrelated code while implementing a focused research change.
 
----
+***
 
 ## Debugging priorities
 
@@ -621,7 +631,7 @@ For non-PPO tasks, inspect the corresponding algorithm-specific components inste
 
 Do not immediately blame the RL algorithm for an environment-interface bug.
 
----
+***
 
 ## Performance interpretation
 
@@ -641,7 +651,7 @@ When later research stages are added, introduce stage-specific metrics separatel
 
 Do not use a future-stage metric to redefine success for Phase 1.
 
----
+***
 
 ## Verification workflow
 
@@ -662,7 +672,7 @@ Do not immediately launch a long training run after modifying environment code.
 
 A failed command must be diagnosed from its actual traceback or output before making another speculative change.
 
----
+***
 
 ## Phase 1 acceptance checks
 
@@ -689,7 +699,7 @@ Do not move to Phase 2 solely because the environment runs.
 
 The Phase 1 command-following baseline should first demonstrate meaningful learning.
 
----
+***
 
 ## Experiment discipline
 
@@ -718,7 +728,7 @@ When comparing experiments, change as few variables as practical.
 
 Do not claim that a modification improves performance without experimental evidence.
 
----
+***
 
 ## Safety and repository hygiene
 
@@ -756,7 +766,7 @@ merely to fix an application-level problem without first identifying and explain
 
 Do not create a new Python environment unless explicitly requested.
 
----
+***
 
 ## Agent helper scripts
 

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "description": "Policy-independent nominal Car4WD speed and steering step protocol",
+  "units": {
+    "duration": "s",
+    "speed": "m/s",
+    "steering": "rad"
+  },
+  "identification": {
+    "speed_step": {
+      "segment_duration_s": 4.0,
+      "steering_rad": 0.0,
+      "speed_levels_m_s": [0.0, 0.3, 0.6, 0.9, 1.2, 0.6, 0.3, 0.0]
+    },
+    "steering_step": {
+      "segment_duration_s": 3.0,
+      "fixed_speeds_m_s": [0.4, 0.8, 1.2],
+      "steering_levels_rad": [
+        0.0,
+        0.08,
+        0.0,
+        -0.08,
+        0.0,
+        0.16,
+        0.0,
+        -0.16,
+        0.0,
+        0.22,
+        0.0,
+        -0.22,
+        0.0
+      ]
+    }
+  },
+  "validation": {
+    "speed_step": {
+      "segment_duration_s": 4.0,
+      "steering_rad": 0.0,
+      "speed_levels_m_s": [0.0, 0.45, 0.75, 1.05, 0.45, 0.0]
+    },
+    "steering_step": {
+      "segment_duration_s": 3.0,
+      "fixed_speeds_m_s": [0.55, 1.0],
+      "steering_levels_rad": [
+        0.0,
+        0.12,
+        0.0,
+        -0.12,
+        0.0,
+        0.2,
+        0.0,
+        -0.2,
+        0.0
+      ]
+    }
+  }
+}
