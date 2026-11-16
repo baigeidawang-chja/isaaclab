@@ -270,16 +270,20 @@ joint_front_left_steer
 Initial action configuration:
 
 ```text
-scale = (1.5, 0.243)
+scale = (1.5, 0.24)
 offset = (0.0, 0.0)
 bounding_strategy = "clip"
 no_reverse = False
 ```
 
 The normalized steering action range `[-1, 1]` therefore maps to the virtual
-center-steering range `[-0.243, 0.243] rad`. This is intentionally slightly
+center-steering range `[-0.24, 0.24] rad`. This is intentionally slightly
 inside the current Ackermann / steering-joint limit of approximately
 `+-0.243874 rad`.
+
+Documents and runs labelled `0.243 rad` are historical regression records.
+Do not reinterpret them as the current action-interface scale, and do not
+rewrite their recorded parameters.
 
 Checkpoints trained with the legacy `0.8 rad` steering scale remain
 shape-compatible, but their normalized steering outputs no longer have the

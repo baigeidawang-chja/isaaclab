@@ -20,8 +20,8 @@ class TestAckermannSteeringConstraints(unittest.TestCase):
     def test_effective_bounds_match_current_action_interface(self) -> None:
         lower, upper = self.constraints.center_bounds_rad
 
-        self.assertTrue(math.isclose(lower, -0.243, abs_tol=1.0e-12))
-        self.assertTrue(math.isclose(upper, 0.243, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(lower, -0.24, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(upper, 0.24, abs_tol=1.0e-12))
 
     def test_boundary_wheel_angles_respect_joint_limits(self) -> None:
         lower, upper = self.constraints.center_bounds_rad
@@ -42,7 +42,7 @@ class TestAckermannSteeringConstraints(unittest.TestCase):
 
         self.assertTrue(math.isclose(lower, -1.0, abs_tol=1.0e-12))
         self.assertTrue(math.isclose(upper, 1.0, abs_tol=1.0e-12))
-        self.assertFalse(self.constraints.preserve_existing_ppo_action_mapping)
+        self.assertTrue(self.constraints.preserve_existing_ppo_action_mapping)
 
     def test_saturating_command_is_rejected_and_clipped(self) -> None:
         lower, upper = self.constraints.center_bounds_rad
