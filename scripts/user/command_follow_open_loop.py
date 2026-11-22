@@ -7,12 +7,12 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--task", default="Isaac-TractionProtect-CommandFollow-Car4WD-v0")
-parser.add_argument("--speed", type=float, default=0.8, help="Physical forward-speed command in m/s.")
+parser.add_argument("--speed", type=float, default=0.8, help="Signed physical speed command in m/s; negative reverses.")
 parser.add_argument(
     "--steer",
     type=float,
     default=0.22,
-    help="Physical steering magnitude in rad (must not exceed the current 0.243-rad action bound).",
+    help="Physical steering magnitude in rad (must not exceed the current 0.24-rad action bound).",
 )
 parser.add_argument("--duration", type=float, default=8.0, help="Duration of each test case in simulation seconds.")
 parser.add_argument("--warmup", type=float, default=3.0, help="Initial interval excluded from steady-state metrics.")
@@ -138,6 +138,7 @@ def main():
                     "target_steering": float(action_term.target_actions[0, 1].item()),
                     "executed_speed": float(processed[0].item()),
                     "executed_steering": float(processed[1].item()),
+                    "actual_body_vx_m_s": float(robot.data.root_lin_vel_b[0, 0].item()),
                     "ackermann_steer_left": float(ack_left[0].item()),
                     "ackermann_steer_right": float(ack_right[0].item()),
                     "ackermann_wheel_rear_left": float(ack_wheels[0, 0].item()),
@@ -173,6 +174,7 @@ def main():
             "mean_yaw_rate_rad_s": _mean(steady_rows, "yaw_rate"),
             "mean_heading_error_rad": _mean(steady_rows, "heading_error"),
             "mean_executed_steering_rad": _mean(steady_rows, "executed_steering"),
+            "mean_actual_body_vx_m_s": _mean(steady_rows, "actual_body_vx_m_s"),
             "mean_actual_steer_left_rad": _mean(steady_rows, "actual_steer_left"),
             "mean_actual_steer_right_rad": _mean(steady_rows, "actual_steer_right"),
             "mean_actual_wheel_front_left_rad_s": _mean(steady_rows, "actual_wheel_front_left"),

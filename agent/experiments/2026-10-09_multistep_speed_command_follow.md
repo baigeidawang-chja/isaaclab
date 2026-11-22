@@ -1,5 +1,9 @@
 # Experiment
 
+> Historical experiment under the pre-2026-11-16 execution geometry. The
+> measured tracking, steering, and training metrics are not a current-geometry
+> baseline; see `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 Add a harder Phase 1 CommandFollow variant that tracks multiple speed steps while holding heading constant within each episode, without changing the original task or breaking checkpoint compatibility.
 

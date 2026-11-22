@@ -1,5 +1,9 @@
 # Steering Action Scale Alignment
 
+> Historical experiment under the pre-2026-11-16 execution geometry. The
+> measured tracking, steering, and training metrics are not a current-geometry
+> baseline; see `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 
 Align the CommandFollow normalized steering action with the feasible virtual
@@ -37,7 +41,7 @@ experimental question and is not established by the interface change alone.
 Synchronized files:
 
 - `AGENTS.md`
-- `agent/audits/2026-10-15_nominal_mpc_interface_model_audit.md`
+- historical interface audit (removed after the 2026-11-16 geometry correction)
 - `mpc/config/nominal_car4wd_steering.json`
 - `mpc/steering_constraints.py`
 - `scripts/user/command_follow_open_loop.py`

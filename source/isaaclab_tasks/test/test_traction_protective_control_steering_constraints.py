@@ -14,8 +14,13 @@ class TestAckermannSteeringConstraints(unittest.TestCase):
     def test_geometric_center_bounds_match_current_vehicle(self) -> None:
         lower, upper = self.constraints.geometric_center_bounds_rad
 
-        self.assertTrue(math.isclose(lower, -0.2438743453893955, abs_tol=1.0e-12))
-        self.assertTrue(math.isclose(upper, 0.2438743453893955, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(lower, -0.24008528699221707, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(upper, 0.24008528699221707, abs_tol=1.0e-12))
+
+    def test_geometry_matches_current_vehicle_measurements(self) -> None:
+        self.assertTrue(math.isclose(self.constraints.wheelbase_m, 0.411, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(self.constraints.track_width_m, 0.290, abs_tol=1.0e-12))
+        self.assertTrue(math.isclose(self.constraints.wheel_radius_m, 0.065, abs_tol=1.0e-12))
 
     def test_effective_bounds_match_current_action_interface(self) -> None:
         lower, upper = self.constraints.center_bounds_rad

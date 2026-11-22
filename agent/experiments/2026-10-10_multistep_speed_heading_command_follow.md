@@ -1,5 +1,9 @@
 # Experiment
 
+> Historical experiment under the pre-2026-11-16 execution geometry. The
+> measured tracking, steering, and training metrics are not a current-geometry
+> baseline; see `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 Extend the Phase 1 multi-level speed task with variable world-heading commands while preserving the original and fixed-heading tasks and retaining checkpoint compatibility.
 

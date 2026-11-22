@@ -1,5 +1,11 @@
 # Nominal Vehicle Identification Data Collection
 
+> Historical collection under the former `0.035 m` wheel radius, `0.407 m`
+> wheelbase, and `0.23346 m` track width. Its CSVs are retained as provenance
+> but must not be fitted or evaluated as the current vehicle. The current
+> collection is `20261116_205318`; see
+> `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 
 Collect policy-independent nominal Car4WD response data for fitting the speed and steering first-order execution dynamics used by the offline MPC model.
@@ -80,5 +86,5 @@ The open-loop collection completed successfully. Both CSV files match the manife
 On 2026-10-29, the CommandFollow steering action scale changed from `0.8 rad`
 to `0.243 rad`. This does not change the conditions or manifest of this
 historical collection. Its largest requested steering magnitude was
-`0.22 rad`, so all collected excitation remains inside the revised action
-range and can still be used for identification and held-out validation.
+`0.22 rad`, so all collected excitation remained inside that action range.
+The later vehicle-geometry change superseded this dataset for current modeling.

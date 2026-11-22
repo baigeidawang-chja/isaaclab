@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROTOCOL_PATH = (
     REPO_ROOT
     / "source/isaaclab_tasks/isaaclab_tasks/user/traction_protective_control/mpc/config"
-    / "nominal_vehicle_identification_protocol.json"
+    / "nominal_vehicle_bidirectional_protocol.json"
 )
 DEFAULT_OUTPUT_ROOT = Path(
     "/media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_nominal_identification"
@@ -191,6 +191,8 @@ def main() -> None:
         raise RuntimeError("Steering constraint wheelbase does not match the environment action term.")
     if not math.isclose(action_term.cfg.base_width, constraints.track_width_m, abs_tol=config_tolerance):
         raise RuntimeError("Steering constraint track width does not match the environment action term.")
+    if not math.isclose(action_term.cfg.wheel_radius, constraints.wheel_radius_m, abs_tol=config_tolerance):
+        raise RuntimeError("Steering constraint wheel radius does not match the environment action term.")
 
     collected: dict[str, list[dict[str, Any]]] = {"identification": [], "validation": []}
     global_step = 0
@@ -334,7 +336,8 @@ def main() -> None:
             "identification_profiles": [profile["name"] for profile in profiles["identification"]],
             "validation_profiles": [profile["name"] for profile in profiles["validation"]],
             "policy_used": False,
-            "ppo_task_modified": False,
+            "ppo_policy_reward_or_observation_modified": False,
+            "action_geometry_synchronized_before_collection": True,
         }
         (output_dir / "manifest.json").write_text(
             json.dumps(manifest, indent=2), encoding="utf-8"

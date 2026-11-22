@@ -60,7 +60,12 @@ class TestNominalCar4WDModel(unittest.TestCase):
         self.assertIsInstance(model.speed, GainScheduledFirstOrderModel)
         self.assertEqual(model.speed.delay_steps, 0)
         self.assertEqual(model.steering.delay_steps, 0)
-        self.assertAlmostEqual(model.yaw_gain, 0.9413673453849162)
+        self.assertAlmostEqual(model.wheelbase_m, 0.411)
+        self.assertEqual(len(model.speed.regions), 3)
+        self.assertAlmostEqual(model.yaw_gain, 1.0)
+        self.assertEqual(model.speed.regions[0].input_min, -1.5)
+        self.assertEqual(model.speed.regions[-1].input_max, 1.5)
+        self.assertLess(model.speed.next_output(0.0, -0.5), 0.0)
 
 
 if __name__ == "__main__":

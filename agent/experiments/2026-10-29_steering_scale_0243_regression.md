@@ -1,5 +1,9 @@
 # Steering Scale 0.243 Regression
 
+> Historical experiment under the pre-2026-11-16 execution geometry. The
+> measured tracking, steering, and training metrics are not a current-geometry
+> baseline; see `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 
 Verify the revised `0.243 rad` steering action contract through policy-free

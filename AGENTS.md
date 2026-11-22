@@ -159,6 +159,18 @@ isaaclab_assets.CAR_CFG
 
 The robot configuration is currently based on the existing Car4WD asset.
 
+Current user-confirmed vehicle geometry for `traction_protective_control`:
+
+```text
+wheel diameter = 0.130 m
+wheel radius   = 0.065 m
+wheelbase      = 0.411 m
+track width    = 0.290 m
+```
+
+Do not reuse the historical `0.035 m` wheel radius, `0.407 m` wheelbase, or
+`0.23346 m` track width for current execution, identification, or MPC.
+
 Prefer reusing the existing robot model and actuator configuration rather than duplicating the asset definition.
 
 Do not modify the upstream robot asset solely to implement Phase 1 command-following behavior unless necessary.
@@ -185,14 +197,25 @@ where:
 heading_error = wrap_to_pi(desired_heading - current_heading)
 ```
 
-Initial recommended command ranges:
+Current command ranges (signed speed):
 
 ```text
-desired_speed: 0.3 to 1.2
+desired_speed: -0.5 to 1.2 m/s
 desired_heading: -0.4 to 0.4 rad
 ```
 
 Command resampling should initially remain slow enough for the vehicle to establish a meaningful tracking response.
+
+Negative desired speed requests reversing while the body follows the same
+desired heading; do not rotate the heading command by pi. This reference
+range is distinct from the ActionTerm physical input range `[-1.5, 1.5] m/s`.
+The current nominal MPC uses the independently validated bidirectional model
+`mpc/config/nominal_car4wd_bidirectional_model.json` and signed heading
+linearization. Its planner reference range is also `[-0.5, 1.2] m/s`;
+identified physical speed inputs and MPC input bounds are `[-1.5, 1.5] m/s`.
+These are target/reference ranges, not hard guarantees on measured speed.
+The older `nominal_car4wd_model.json` and forward-only MPC config remain
+historical; do not combine them with bidirectional input bounds.
 
 Recommended initial interval:
 
@@ -279,7 +302,7 @@ no_reverse = False
 The normalized steering action range `[-1, 1]` therefore maps to the virtual
 center-steering range `[-0.24, 0.24] rad`. This is intentionally slightly
 inside the current Ackermann / steering-joint limit of approximately
-`+-0.243874 rad`.
+`+-0.240085 rad` for the current `0.411 m` wheelbase and `0.290 m` track.
 
 Documents and runs labelled `0.243 rad` are historical regression records.
 Do not reinterpret them as the current action-interface scale, and do not
@@ -289,6 +312,10 @@ Checkpoints trained with the legacy `0.8 rad` steering scale remain
 shape-compatible, but their normalized steering outputs no longer have the
 same physical meaning. Treat them as initialization candidates only, not as
 behaviorally equivalent checkpoints or directly comparable baselines.
+
+Checkpoints trained before the `0.065 m` wheel-radius and current Ackermann
+geometry synchronization also require fresh evaluation under the current
+execution mapping. Their earlier reward and tracking metrics are historical.
 
 Do not remove reverse capability.
 

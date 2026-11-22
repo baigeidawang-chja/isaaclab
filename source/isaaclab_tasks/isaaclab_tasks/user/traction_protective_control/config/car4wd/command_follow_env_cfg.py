@@ -64,7 +64,7 @@ class CommandsCfg:
     planner_command = PlannerCommandCfg(
         asset_name="robot",
         resampling_time_range=(50.0, 50.0),
-        desired_speed_range=(0.3, 1.2),
+        desired_speed_range=(-0.5, 1.2),
         desired_heading_range=(-0.4, 0.4),
         debug_vis=False,
     )
@@ -85,9 +85,9 @@ class ActionsCfg:
             "joint_front_left_steer",
             "joint_front_right_steer",
         ],
-        base_length=2.035 / 5,
-        base_width=1.1673 / 5,
-        wheel_radius=0.035,
+        base_length=0.411,
+        base_width=0.290,
+        wheel_radius=0.065,
         scale=(1.5, 0.24),
         offset=(0.0, 0.0),
         bounding_strategy="clip",
@@ -217,7 +217,7 @@ class CommandFollowEnvCfg_PLAY(CommandFollowEnvCfg):
         self.scene.num_envs = 16
         self.scene.env_spacing = 3.0
         self.commands.planner_command.resampling_time_range = (100.0, 100.0)
-        self.commands.planner_command.desired_speed_range = (0.6, 0.8)
+        self.commands.planner_command.desired_speed_range = (-0.5, 1.2)
         self.commands.planner_command.desired_heading_range = (0.0, 0.0)
         self.commands.planner_command.debug_vis = True
         self.observations.policy.enable_corruption = False

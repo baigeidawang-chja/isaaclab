@@ -15,7 +15,7 @@ from isaaclab.utils.math import wrap_to_pi
 
 
 class PlannerCommand(CommandTerm):
-    """Upper-level planner command: desired speed and world-frame heading."""
+    """Signed speed and world-frame body heading; negative speed requests reversing."""
 
     cfg: "PlannerCommandCfg"
 
@@ -230,7 +230,7 @@ class PlannerCommandCfg(CommandTermCfg):
 
     class_type: type[CommandTerm] = PlannerCommand
     asset_name: str = MISSING
-    desired_speed_range: tuple[float, float] = (0.3, 1.2)
+    desired_speed_range: tuple[float, float] = (-0.5, 1.2)
     desired_heading_range: tuple[float, float] = (-0.4, 0.4)
     speed_visualizer_scale: float = 2.0
     target_arrow_height: float = 0.65

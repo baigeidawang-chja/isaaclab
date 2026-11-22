@@ -18,6 +18,7 @@ class AckermannSteeringConstraints:
 
     wheelbase_m: float
     track_width_m: float
+    wheel_radius_m: float
     front_left_min_rad: float
     front_left_max_rad: float
     front_right_min_rad: float
@@ -33,6 +34,7 @@ class AckermannSteeringConstraints:
         values = (
             self.wheelbase_m,
             self.track_width_m,
+            self.wheel_radius_m,
             self.front_left_min_rad,
             self.front_left_max_rad,
             self.front_right_min_rad,
@@ -45,8 +47,8 @@ class AckermannSteeringConstraints:
         )
         if not all(math.isfinite(value) for value in values):
             raise ValueError("Steering constraint parameters must all be finite.")
-        if self.wheelbase_m <= 0.0 or self.track_width_m <= 0.0:
-            raise ValueError("Ackermann wheelbase and track width must be positive.")
+        if self.wheelbase_m <= 0.0 or self.track_width_m <= 0.0 or self.wheel_radius_m <= 0.0:
+            raise ValueError("Ackermann wheelbase, track width, and wheel radius must be positive.")
         if self.action_scale_rad <= 0.0:
             raise ValueError("Steering action scale must be positive.")
         if self.normalized_min >= self.normalized_max:
@@ -69,6 +71,7 @@ class AckermannSteeringConstraints:
         return cls(
             wheelbase_m=float(geometry["wheelbase_m"]),
             track_width_m=float(geometry["track_width_m"]),
+            wheel_radius_m=float(geometry["wheel_radius_m"]),
             front_left_min_rad=float(joint_limits["front_left"][0]),
             front_left_max_rad=float(joint_limits["front_left"][1]),
             front_right_min_rad=float(joint_limits["front_right"][0]),
@@ -196,6 +199,9 @@ class AckermannSteeringConstraints:
         left_at_lower, right_at_lower = self.wheel_angles_rad(lower)
         left_at_upper, right_at_upper = self.wheel_angles_rad(upper)
         return {
+            "wheelbase_m": self.wheelbase_m,
+            "track_width_m": self.track_width_m,
+            "wheel_radius_m": self.wheel_radius_m,
             "center_bounds_rad": [lower, upper],
             "center_bounds_deg": [math.degrees(lower), math.degrees(upper)],
             "normalized_bounds": [normalized_lower, normalized_upper],

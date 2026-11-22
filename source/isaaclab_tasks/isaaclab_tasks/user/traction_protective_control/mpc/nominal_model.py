@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 
-DEFAULT_NOMINAL_MODEL_CONFIG_PATH = Path(__file__).parent / "config" / "nominal_car4wd_model.json"
+DEFAULT_NOMINAL_MODEL_CONFIG_PATH = Path(__file__).parent / "config" / "nominal_car4wd_bidirectional_model.json"
 
 
 @dataclass(frozen=True)

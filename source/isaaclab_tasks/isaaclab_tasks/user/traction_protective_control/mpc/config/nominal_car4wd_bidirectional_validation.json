@@ -1,0 +1,473 @@
+{
+  "parameters": "/home/chja/IsaacLab/source/isaaclab_tasks/isaaclab_tasks/user/traction_protective_control/mpc/config/nominal_car4wd_bidirectional_model.json",
+  "parameters_sha256": "78fe257a39f108a103c0a0edb3dcc1afb53aff3b861bcac9926cfca7a28da3f3",
+  "validation_csv": "/media/chja/CE54D158C95990271/IsaacLabTrainingData/traction_protective_control_nominal_identification/20261120_173554/validation.csv",
+  "validation_sha256": "3258542fde8b5a403a54ef9bf3998bfde813f2055470c0958418aa44fbf35529",
+  "validation_rows": 5040,
+  "parameters_refit_or_selected_on_validation": false,
+  "metrics": {
+    "speed": {
+      "samples": 1260,
+      "mae": 0.03258242918902963,
+      "rmse": 0.048337962905148954,
+      "bias_measured_minus_predicted": 0.004511378692316638,
+      "max_abs_error": 0.15663911356400329,
+      "r2": 0.9952001745618649
+    },
+    "speed_by_drive_direction": [
+      {
+        "drive_direction": "forward",
+        "samples": 490,
+        "mae": 0.048182930214557294,
+        "rmse": 0.06215415220433521,
+        "bias_measured_minus_predicted": 0.01553629550430222,
+        "max_abs_error": 0.15663911356400329,
+        "r2": 0.9614850739136143
+      },
+      {
+        "drive_direction": "reverse",
+        "samples": 560,
+        "mae": 0.02906766020216617,
+        "rmse": 0.042034901839188475,
+        "bias_measured_minus_predicted": -0.00459195299768223,
+        "max_abs_error": 0.14873599092886758,
+        "r2": 0.9848108528596703
+      },
+      {
+        "drive_direction": "stop",
+        "samples": 210,
+        "mae": 0.005553977427767638,
+        "rmse": 0.01713302469922398,
+        "bias_measured_minus_predicted": 0.003062123971013934,
+        "max_abs_error": 0.1044772319678553,
+        "r2": 0.7420616068711395
+      }
+    ],
+    "speed_by_transition": [
+      {
+        "transition": "acceleration",
+        "samples": 700,
+        "mae": 0.045327102087913,
+        "rmse": 0.058369901071369586,
+        "bias_measured_minus_predicted": 0.009425818590935628,
+        "max_abs_error": 0.15663911356400329,
+        "r2": 0.9956080184896423
+      },
+      {
+        "transition": "deceleration",
+        "samples": 280,
+        "mae": 0.018472758115336965,
+        "rmse": 0.036307864705690224,
+        "bias_measured_minus_predicted": 0.002129547942848216,
+        "max_abs_error": 0.15362070155202268,
+        "r2": 0.9908942134413015
+      },
+      {
+        "transition": "direction_change",
+        "samples": 210,
+        "mae": 0.019332109128610574,
+        "rmse": 0.03005844658887067,
+        "bias_measured_minus_predicted": -0.006959386495342584,
+        "max_abs_error": 0.09820559968364756,
+        "r2": 0.993422146514427
+      },
+      {
+        "transition": "hold",
+        "samples": 70,
+        "mae": 0.0013253446762237764,
+        "rmse": 0.002006872687167569,
+        "bias_measured_minus_predicted": -0.0006934017330218954,
+        "max_abs_error": 0.006057158585694805,
+        "r2": -0.13556036320690357
+      }
+    ],
+    "steering": {
+      "samples": 3780,
+      "mae": 0.0003421511726360554,
+      "rmse": 0.00045200185262377095,
+      "bias_measured_minus_predicted": 2.3838868183354748e-05,
+      "max_abs_error": 0.0018632382373839906,
+      "r2": 0.9999830197411325
+    },
+    "steering_by_sign_and_speed": [
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.0008099502707471635,
+        "rmse": 0.0009149172040103077,
+        "bias_measured_minus_predicted": 0.0008044074678602111,
+        "max_abs_error": 0.0018632382373839906,
+        "r2": 0.9994885600992551
+      },
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.00042748123557723145,
+        "rmse": 0.0005591797221178667,
+        "bias_measured_minus_predicted": -0.00036870776222547476,
+        "max_abs_error": 0.0016647122286458788,
+        "r2": 0.9998090406476834
+      },
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.00029988793000942026,
+        "rmse": 0.00038798916154527026,
+        "bias_measured_minus_predicted": 0.00015743600469420266,
+        "max_abs_error": 0.0013921226903776,
+        "r2": 0.9975673304988774
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.0006105608875278721,
+        "rmse": 0.000696375060336528,
+        "bias_measured_minus_predicted": 0.0005495947149730243,
+        "max_abs_error": 0.0015409058496196615,
+        "r2": 0.9997035215531292
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.00045001822775277936,
+        "rmse": 0.0005589156820389541,
+        "bias_measured_minus_predicted": -0.00037142191059788554,
+        "max_abs_error": 0.0016241724997659857,
+        "r2": 0.999808835871994
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.00034043285697144763,
+        "rmse": 0.00044855060360700485,
+        "bias_measured_minus_predicted": 4.415356534799144e-05,
+        "max_abs_error": 0.0016408274775898,
+        "r2": 0.9967489275524006
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.0004890241289426143,
+        "rmse": 0.0005783160403491983,
+        "bias_measured_minus_predicted": 0.0004343376128996718,
+        "max_abs_error": 0.0016515265502400622,
+        "r2": 0.9997955356524558
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.0003210992530827711,
+        "rmse": 0.0004190701639761188,
+        "bias_measured_minus_predicted": -0.00018069420129595122,
+        "max_abs_error": 0.0013442664629224887,
+        "r2": 0.9998925804993201
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.0002546740732873499,
+        "rmse": 0.00032424585249620223,
+        "bias_measured_minus_predicted": 8.852403980471036e-05,
+        "max_abs_error": 0.0013854228332471,
+        "r2": 0.998286444213443
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.00031035618993156155,
+        "rmse": 0.00039924937601696893,
+        "bias_measured_minus_predicted": -0.00020107411813850037,
+        "max_abs_error": 0.0012527637125854113,
+        "r2": 0.9999021737188029
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.00028896389448278726,
+        "rmse": 0.00036740210811527445,
+        "bias_measured_minus_predicted": 6.329913547137261e-05,
+        "max_abs_error": 0.00107248869851162,
+        "r2": 0.9999170610539191
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.0002591838253034663,
+        "rmse": 0.00034954140945894747,
+        "bias_measured_minus_predicted": -6.97882864558299e-05,
+        "max_abs_error": 0.0012202900303118,
+        "r2": 0.998010936161188
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.00040323173717190874,
+        "rmse": 0.0005093444119205749,
+        "bias_measured_minus_predicted": -0.0002642388165597305,
+        "max_abs_error": 0.0017446786813743176,
+        "r2": 0.9998406093206365
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.00030953122385184796,
+        "rmse": 0.0003963574341152752,
+        "bias_measured_minus_predicted": 6.052394399652502e-05,
+        "max_abs_error": 0.0012607666385461153,
+        "r2": 0.9999031660107113
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.0002992642886957102,
+        "rmse": 0.0003902173390109238,
+        "bias_measured_minus_predicted": -4.183702625700362e-05,
+        "max_abs_error": 0.0014046807001128,
+        "r2": 0.9975088758230576
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.0003441195416601009,
+        "rmse": 0.0004297570576832946,
+        "bias_measured_minus_predicted": -0.0002881201097275621,
+        "max_abs_error": 0.0012629281414380522,
+        "r2": 0.9998865712047257
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.0002656333784778663,
+        "rmse": 0.0003440206578931614,
+        "bias_measured_minus_predicted": 0.00010587722935709507,
+        "max_abs_error": 0.001050898740249856,
+        "r2": 0.9999271477042723
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.0002298017025194022,
+        "rmse": 0.00029451890271058783,
+        "bias_measured_minus_predicted": -5.8541795158957925e-05,
+        "max_abs_error": 0.001128287278280109,
+        "r2": 0.9985766684291084
+      }
+    ],
+    "yaw_unit_gain": {
+      "samples": 3780,
+      "mae": 0.03825086852840441,
+      "rmse": 0.05258004959986664,
+      "bias_measured_minus_predicted": 0.001647349938507155,
+      "max_abs_error": 0.3611725957498303,
+      "r2": 0.9400220318970305
+    },
+    "yaw_selected_gain": {
+      "samples": 3780,
+      "mae": 0.03825086852840441,
+      "rmse": 0.05258004959986664,
+      "bias_measured_minus_predicted": 0.001647349938507155,
+      "max_abs_error": 0.3611725957498303,
+      "r2": 0.9400220318970305
+    },
+    "yaw_by_sign_and_speed": [
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.04048555117270788,
+        "rmse": 0.05296639918242681,
+        "bias_measured_minus_predicted": 0.0007755172145508455,
+        "max_abs_error": 0.18417759482826973,
+        "r2": 0.7412446089990572
+      },
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.04968663109356251,
+        "rmse": 0.06493586223893073,
+        "bias_measured_minus_predicted": 0.0029320440994519484,
+        "max_abs_error": 0.2769360334386272,
+        "r2": 0.6475972748010843
+      },
+      {
+        "requested_target_speed_m_s": -1.35,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.03589123293753352,
+        "rmse": 0.04757868252497285,
+        "bias_measured_minus_predicted": 0.002058950318572279,
+        "max_abs_error": 0.2298190764430017,
+        "r2": 0.11702982433715003
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.042758289880995295,
+        "rmse": 0.05640183059244112,
+        "bias_measured_minus_predicted": 0.015170045528784863,
+        "max_abs_error": 0.21845740263537444,
+        "r2": 0.583148328358672
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.048944218011031645,
+        "rmse": 0.06709239401955551,
+        "bias_measured_minus_predicted": -0.015848485567567953,
+        "max_abs_error": 0.23887338790642543,
+        "r2": 0.5128170671308949
+      },
+      {
+        "requested_target_speed_m_s": -1.0,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.041694898562507,
+        "rmse": 0.05424313258622646,
+        "bias_measured_minus_predicted": 0.004493541699346116,
+        "max_abs_error": 0.18943184879152125,
+        "r2": 0.043849566028482556
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.027972340769230403,
+        "rmse": 0.04053306774171832,
+        "bias_measured_minus_predicted": 0.0016055731726148717,
+        "max_abs_error": 0.18218096409613566,
+        "r2": 0.5540442410036882
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.03544703188057547,
+        "rmse": 0.04861191433819771,
+        "bias_measured_minus_predicted": -0.01158258891359453,
+        "max_abs_error": 0.23119574339312182,
+        "r2": 0.3889659634342123
+      },
+      {
+        "requested_target_speed_m_s": -0.55,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.02229419194745179,
+        "rmse": 0.03196588634666643,
+        "bias_measured_minus_predicted": -0.0010662161718877489,
+        "max_abs_error": 0.15463572309268334,
+        "r2": 0.033907745547828494
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.03408986195262275,
+        "rmse": 0.05587993516342903,
+        "bias_measured_minus_predicted": -0.012704234636882932,
+        "max_abs_error": 0.3611725957498303,
+        "r2": 0.31562919651489985
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.03723533764967946,
+        "rmse": 0.05217503564382652,
+        "bias_measured_minus_predicted": 0.011450682663776477,
+        "max_abs_error": 0.19290117456059191,
+        "r2": 0.5329524413038833
+      },
+      {
+        "requested_target_speed_m_s": 0.55,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.025438539130309096,
+        "rmse": 0.03546825675225094,
+        "bias_measured_minus_predicted": 0.0038800495835864647,
+        "max_abs_error": 0.15047634952217492,
+        "r2": 0.03412704497022834
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.04818796580873136,
+        "rmse": 0.062396508314641635,
+        "bias_measured_minus_predicted": -0.023666361235514587,
+        "max_abs_error": 0.22725427826493522,
+        "r2": 0.5256648777068686
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.04970394113696398,
+        "rmse": 0.06479448722888255,
+        "bias_measured_minus_predicted": 0.02579821047913949,
+        "max_abs_error": 0.21188015563709361,
+        "r2": 0.5661369286072423
+      },
+      {
+        "requested_target_speed_m_s": 1.0,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.04272021052771658,
+        "rmse": 0.05777283557271606,
+        "bias_measured_minus_predicted": 0.003896340591404462,
+        "max_abs_error": 0.2612071533602693,
+        "r2": 0.04796634601376015
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "left",
+        "samples": 140,
+        "mae": 0.047999722985065815,
+        "rmse": 0.06431858490968408,
+        "bias_measured_minus_predicted": -0.010412595547918563,
+        "max_abs_error": 0.21928463468202186,
+        "r2": 0.563558956801471
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "right",
+        "samples": 140,
+        "mae": 0.049597369936005456,
+        "rmse": 0.06354259489199136,
+        "bias_measured_minus_predicted": 0.02184113085098832,
+        "max_abs_error": 0.1879945725861794,
+        "r2": 0.6702620878079679
+      },
+      {
+        "requested_target_speed_m_s": 1.35,
+        "steering_sign": "zero",
+        "samples": 350,
+        "mae": 0.0402270020903809,
+        "rmse": 0.05202019224030608,
+        "bias_measured_minus_predicted": 0.0023851380717244057,
+        "max_abs_error": 0.187344811584546,
+        "r2": 0.075873321100832
+      }
+    ]
+  }
+}

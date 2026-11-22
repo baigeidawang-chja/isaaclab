@@ -1,5 +1,9 @@
 # Experiment
 
+> Historical experiment under the pre-2026-11-16 execution geometry. The
+> measured tracking, steering, and training metrics are not a current-geometry
+> baseline; see `2026-11-16_geometry_sync_reidentification.md`.
+
 ## Goal
 Determine whether the persistent positive actual-heading bias in the Phase 1 CommandFollow task is caused by a left/right mismatch or physical asymmetry in the vehicle execution layer.
 

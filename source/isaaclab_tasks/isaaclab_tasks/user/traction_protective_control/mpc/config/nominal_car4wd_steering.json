@@ -5,8 +5,10 @@
     "angle": "rad"
   },
   "geometry": {
-    "wheelbase_m": 0.40700000000000003,
-    "track_width_m": 0.23346
+    "wheelbase_m": 0.411,
+    "track_width_m": 0.29,
+    "wheel_radius_m": 0.065,
+    "wheel_diameter_m": 0.13
   },
   "steering_joint_limits_rad": {
     "front_left": [
@@ -30,7 +32,7 @@
     "preserve_existing_ppo_action_mapping": true
   },
   "provenance": {
-    "geometry": "traction_protective_control CommandFollow ActionsCfg",
+    "geometry": "user-confirmed current Car4WD geometry synchronized with traction_protective_control CommandFollow ActionsCfg on 2026-11-16",
     "joint_limits": "car_no_damper_04.usd and runtime Articulation soft_joint_pos_limits",
     "action_interface": "RateLimitedCarVWActionCfg in CommandFollow ActionsCfg"
   }

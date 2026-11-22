@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import math
+import subprocess
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -29,14 +30,19 @@ from isaaclab_tasks.user.traction_protective_control.mpc.nominal_model import (
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_DIR = Path(
     "/media/chja/CE54D158C95990271/IsaacLabTrainingData/"
-    "traction_protective_control_nominal_identification/20261028_152550"
+    "traction_protective_control_nominal_identification/20261120_173554"
 )
 DEFAULT_STEERING_CONFIG = (
     REPO_ROOT
     / "source/isaaclab_tasks/isaaclab_tasks/user/traction_protective_control/mpc/config"
     / "nominal_car4wd_steering.json"
 )
-DEFAULT_MODEL_CONFIG = DEFAULT_STEERING_CONFIG.with_name("nominal_car4wd_model.json")
+DEFAULT_MODEL_CONFIG = DEFAULT_STEERING_CONFIG.with_name("nominal_car4wd_bidirectional_model.json")
+DEFAULT_TASK_CONFIG = (
+    REPO_ROOT
+    / "source/isaaclab_tasks/isaaclab_tasks/user/traction_protective_control/config/car4wd"
+    / "command_follow_env_cfg.py"
+)
 
 REQUIRED_COLUMNS = {
     "split",
@@ -88,6 +94,12 @@ def _parse_args() -> argparse.Namespace:
     validate.add_argument("--output-dir", type=Path, required=True)
     validate.add_argument("--parameters", type=Path, default=DEFAULT_MODEL_CONFIG)
     return parser.parse_args()
+
+
+def _git_head() -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, text=True
+    ).strip()
 
 
 def _sha256(path: Path) -> str:
@@ -479,12 +491,28 @@ def _speed_schedule_table(
     data: pd.DataFrame,
     max_delay_steps: int,
 ) -> tuple[GainScheduledFirstOrderModel, list[dict[str, Any]], dict[str, Any]]:
-    schedule_definitions = (
-        ("one_region", [0.0, 1.2]),
-        ("two_regions", [0.0, 0.75, 1.2]),
-        ("three_regions", [0.0, 0.45, 1.05, 1.2]),
-        ("four_regions", [0.0, 0.45, 0.75, 1.05, 1.2]),
-    )
+    lower = round(float(data["executed_speed_m_s"].min()), 6)
+    upper = round(float(data["executed_speed_m_s"].max()), 6)
+    if lower < 0.0:
+        # Predeclared hypotheses; selection never reads the held-out validation CSV.
+        schedule_definitions = (
+            ("one_region", [lower, upper]),
+            ("direction", [lower, 0.0, upper]),
+            ("magnitude", [lower, -0.75, 0.75, upper]),
+            ("direction_speed", [lower, -0.75, 0.0, 0.75, upper]),
+            ("direction_three_speeds", [lower, -1.05, -0.45, 0.0, 0.45, 1.05, upper]),
+        )
+        schedule_definitions = tuple(
+            (name, edges) for name, edges in schedule_definitions
+            if all(a < b for a, b in zip(edges[:-1], edges[1:]))
+        )
+    else:
+        schedule_definitions = (
+            ("one_region", [0.0, 1.2]),
+            ("two_regions", [0.0, 0.75, 1.2]),
+            ("three_regions", [0.0, 0.45, 1.05, 1.2]),
+            ("four_regions", [0.0, 0.45, 0.75, 1.05, 1.2]),
+        )
     candidates: list[dict[str, Any]] = []
     fitted_models: dict[tuple[str, int], GainScheduledFirstOrderModel] = {}
     for name, boundaries in schedule_definitions:
@@ -563,10 +591,15 @@ def _transition_labels(data: pd.DataFrame) -> pd.Series:
         previous = None
         for segment_index, target in segment_targets.items():
             if previous is not None:
-                if target > previous + 1.0e-9:
-                    labels.loc[run.index[run["segment_index"] == segment_index]] = "acceleration"
-                elif target < previous - 1.0e-9:
-                    labels.loc[run.index[run["segment_index"] == segment_index]] = "deceleration"
+                if target * previous < 0.0:
+                    label = "direction_change"
+                elif abs(target) > abs(previous) + 1.0e-9:
+                    label = "acceleration"
+                elif abs(target) < abs(previous) - 1.0e-9:
+                    label = "deceleration"
+                else:
+                    label = "hold"
+                labels.loc[run.index[run["segment_index"] == segment_index]] = label
             previous = target
     return labels
 
@@ -776,6 +809,10 @@ def _plot_residuals(data: pd.DataFrame, path: Path, title: str) -> None:
 def _evaluate_predictions(data: pd.DataFrame) -> dict[str, Any]:
     speed = data[data["profile_type"] == "speed_step"].copy()
     speed["transition"] = _transition_labels(speed)
+    speed["drive_direction"] = np.where(
+        speed["requested_target_speed_m_s"] < 0.0, "reverse",
+        np.where(speed["requested_target_speed_m_s"] > 0.0, "forward", "stop"),
+    )
     steering = data[data["profile_type"] == "steering_step"].copy()
     steering["steering_sign"] = np.where(
         steering["requested_target_steering_rad"] > 1.0e-9,
@@ -784,6 +821,9 @@ def _evaluate_predictions(data: pd.DataFrame) -> dict[str, Any]:
     )
     return {
         "speed": _metric(speed["actual_body_vx_m_s"], speed["predicted_body_vx_m_s"]),
+        "speed_by_drive_direction": _group_metrics(
+            speed, "actual_body_vx_m_s", "predicted_body_vx_m_s", ["drive_direction"]
+        ),
         "speed_by_transition": _group_metrics(
             speed, "actual_body_vx_m_s", "predicted_body_vx_m_s", ["transition"]
         ),
@@ -928,6 +968,8 @@ def fit(args: argparse.Namespace) -> None:
         "geometry": {
             "wheelbase_m": wheelbase,
             "track_width_m": float(steering_config["geometry"]["track_width_m"]),
+            "wheel_radius_m": float(steering_config["geometry"]["wheel_radius_m"]),
+            "wheel_diameter_m": float(steering_config["geometry"]["wheel_diameter_m"]),
         },
         "action_interface": {
             "speed_unit": "m/s",
@@ -1020,7 +1062,9 @@ def fit(args: argparse.Namespace) -> None:
             "extrapolation_allowed": False,
         },
         "provenance": {
-            "base_commit": "9e581b7ceb4be3abc4aba35ee2a2e2ec652560e0",
+            "base_commit": _git_head(),
+            "task_config": str(DEFAULT_TASK_CONFIG.resolve()),
+            "task_config_sha256": _sha256(DEFAULT_TASK_CONFIG.resolve()),
             "steering_config": str(steering_config_path),
             "steering_config_sha256": _sha256(steering_config_path),
             "validation_used_for_parameter_selection": False,

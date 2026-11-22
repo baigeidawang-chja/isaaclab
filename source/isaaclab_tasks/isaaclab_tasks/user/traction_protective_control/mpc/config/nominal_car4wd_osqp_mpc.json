@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "backend": "osqp_sparse_linear_mpc",
+  "horizon_steps": 20,
+  "state_order": ["world_heading_error_rad", "body_longitudinal_speed_m_s", "equivalent_center_steering_rad"],
+  "control_order": ["physical_speed_target_m_s", "equivalent_center_steering_target_rad"],
+  "model_parameter_file": "nominal_car4wd_model.json",
+  "weights": {
+    "state": [12.0, 5.0, 0.2],
+    "terminal_state": [24.0, 10.0, 0.4],
+    "control": [0.05, 0.1],
+    "control_rate": [0.8, 1.5],
+    "status": "initial untuned engineering weights; not selected on validation.csv"
+  },
+  "constraints": {
+    "action_term_physical_bounds": {
+      "speed_target_m_s": [-1.5, 1.5],
+      "center_steering_target_rad": [-0.24, 0.24]
+    },
+    "identified_model_bounds": {
+      "speed_target_m_s": [0.0, 1.2],
+      "center_steering_target_rad": [-0.22, 0.22]
+    },
+    "effective_mpc_control_bounds": {
+      "speed_target_m_s": [0.0, 1.2],
+      "center_steering_target_rad": [-0.22, 0.22],
+      "rule": "intersection of ActionTerm range and independently identified model range"
+    },
+    "predicted_state_bounds": {
+      "heading_error_rad": [-3.141592653589793, 3.141592653589793],
+      "body_speed_m_s": [0.0, 1.3],
+      "center_steering_rad": [-0.22, 0.22]
+    },
+    "physical_rate_limits_per_second": {
+      "speed_target_m_s2": 2.0,
+      "center_steering_target_rad_s": 2.0
+    }
+  },
+  "solver": {
+    "eps_abs": 0.000001,
+    "eps_rel": 0.000001,
+    "max_iter": 4000,
+    "polish": true,
+    "adaptive_rho": true,
+    "verbose": false
+  },
+  "provenance": {
+    "control_period_s": 0.05,
+    "action_term": "traction_protective_control.config.car4wd.command_follow_env_cfg.ActionsCfg",
+    "model_selection_data": "identification.csv only",
+    "independent_validation_used_for_weight_tuning": false
+  }
+}
