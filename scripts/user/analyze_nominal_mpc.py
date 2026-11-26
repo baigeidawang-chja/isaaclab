@@ -25,16 +25,20 @@ def _settling_time(rows: list[dict], key: str, tolerance: float) -> float | None
     return None
 
 
-def _read_run(run_dir: Path) -> tuple[dict, dict, dict, list[dict]]:
+def _read_run(run_dir: Path, verify_live_asset: bool = True) -> tuple[dict, dict, dict, list[dict]]:
     metadata = json.loads((run_dir / "metadata.json").read_text(encoding="utf-8"))
-    model_path = Path(metadata["model_config"])
-    config_path = Path(metadata["mpc_config"])
-    steering_path = Path(metadata["steering_config"])
+    def snapshot(label):
+        local = run_dir / f"{label}_config.json"
+        return local if local.is_file() else Path(metadata[f"{label}_config"])
+
+    model_path = snapshot("model")
+    config_path = snapshot("mpc")
+    steering_path = snapshot("steering")
     for label, path in (("model", model_path), ("mpc", config_path), ("steering", steering_path)):
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest != metadata[f"{label}_config_sha256"]:
             raise ValueError(f"{label} config changed since {run_dir} was recorded")
-    if "robot_usd_sha256" in metadata:
+    if verify_live_asset and "robot_usd_sha256" in metadata:
         robot_usd_path = Path(metadata["robot_usd_path"])
         if hashlib.sha256(robot_usd_path.read_bytes()).hexdigest() != metadata["robot_usd_sha256"]:
             raise ValueError(f"Robot USD changed since {run_dir} was recorded")
@@ -165,6 +169,7 @@ def analyze(run_dir: Path, speed_tolerance: float, heading_tolerance: float, ste
         "profile": metadata["profile"],
         "model_sha256": metadata["model_config_sha256"],
         "samples": len(rows),
+        "world_projection_available": all("actual_world_vx_m_s" in row and "actual_world_vy_m_s" in row for row in rows),
         "solver_status_counts": dict(Counter(row["solver_status"] for row in rows)),
         "fallback_count": sum(int(row["fallback_used"]) for row in rows),
         "termination_reason": metadata["termination_reason"],

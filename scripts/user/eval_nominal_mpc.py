@@ -34,6 +34,9 @@ import csv
 from collections import Counter
 from datetime import datetime
 import hashlib
+import importlib.metadata
+import inspect
+import sys
 import json
 import math
 from typing import Any
@@ -196,6 +199,13 @@ def main() -> None:
         with torch.inference_mode():
             env.reset()
         controller.reset([0.0, 0.0])
+        initial_state = {
+            "root_state_w": robot.data.root_state_w[0].detach().cpu().tolist(),
+            "joint_names": robot.joint_names,
+            "joint_pos_rad": robot.data.joint_pos[0].detach().cpu().tolist(),
+            "joint_vel_rad_s": robot.data.joint_vel[0].detach().cpu().tolist(),
+            "executed_action": action_term.processed_actions[0].detach().cpu().tolist(),
+        }
 
         for step in range(total_steps):
             stage_index = min(step // segment_steps, len(profile) - 1)
@@ -204,6 +214,7 @@ def main() -> None:
                 planner_command.command[0, 0] = desired_speed
                 planner_command.command[0, 1] = desired_heading
             heading = float(robot.data.heading_w[0].item())
+            pre_position = robot.data.root_pos_w[0].detach().cpu().tolist()
             body_speed = float(robot.data.root_lin_vel_b[0, 0].item())
             actual_left = float(robot.data.joint_pos[0, steering_ids["front_left"]].item())
             actual_right = float(robot.data.joint_pos[0, steering_ids["front_right"]].item())
@@ -251,6 +262,11 @@ def main() -> None:
                 "desired_speed_m_s": desired_speed,
                 "desired_heading_rad": desired_heading,
                 "pre_heading_error_rad": heading_error,
+                "pre_heading_rad": heading,
+                "pre_world_x_m": pre_position[0],
+                "pre_world_y_m": pre_position[1],
+                "previous_executed_speed_m_s": float(previous_executed[0]),
+                "previous_executed_steering_rad": float(previous_executed[1]),
                 "pre_body_speed_m_s": body_speed,
                 "pre_equivalent_center_steering_rad": actual_center,
                 "mpc_speed_target_m_s": result.speed_target_m_s,
@@ -263,6 +279,10 @@ def main() -> None:
                 "executed_steering_rad": float(executed[1].item()),
                 "actual_body_vx_m_s": float(robot.data.root_lin_vel_b[0, 0].item()),
                 "actual_body_vy_m_s": float(robot.data.root_lin_vel_b[0, 1].item()),
+                "actual_world_vx_m_s": float(robot.data.root_lin_vel_w[0, 0].item()),
+                "actual_world_vy_m_s": float(robot.data.root_lin_vel_w[0, 1].item()),
+                "actual_world_x_m": float(robot.data.root_pos_w[0, 0].item()),
+                "actual_world_y_m": float(robot.data.root_pos_w[0, 1].item()),
                 "actual_heading_rad": post_heading,
                 "actual_heading_error_rad": _wrap_to_pi(desired_heading - post_heading),
                 "actual_yaw_rate_rad_s": float(robot.data.root_ang_vel_b[0, 2].item()),
@@ -290,9 +310,15 @@ def main() -> None:
                 "predicted_next_body_speed_m_s": float(result.predicted_states[1, 1]),
                 "predicted_next_center_steering_rad": float(result.predicted_states[1, 2]),
                 "terminated": int(terminated_value),
+                "post_step_state_reset": int(terminated_value or truncated_value),
+                "response_sample_valid": int(not (terminated_value or truncated_value)),
                 "truncated": int(truncated_value),
                 "termination_reason": "|".join(reasons),
             }
+            row["actual_projected_speed_m_s"] = (
+                row["actual_world_vx_m_s"] * math.cos(desired_heading)
+                + row["actual_world_vy_m_s"] * math.sin(desired_heading)
+            )
             for side, joint_id in steering_ids.items():
                 row[f"target_steering_{side}_rad"] = float(robot.data.joint_pos_target[0, joint_id].item())
             for wheel, joint_id in wheel_ids.items():
@@ -335,7 +361,25 @@ def main() -> None:
             destination.write_bytes(source.read_bytes())
             config_snapshots[name] = destination
         metadata = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "argv": sys.argv,
+            "duration_s": args_cli.duration,
+            "segment_duration_s": args_cli.segment_duration,
+            "expected_steps": total_steps,
+            "final_stage_index": rows[-1]["stage_index"],
+            "initial_state": initial_state,
+            "wheel_joint_mapping": {
+                label: {"name": WHEEL_JOINTS[label], "id": joint_id}
+                for label, joint_id in wheel_ids.items()
+            },
+            "steering_joint_mapping": {
+                label: {"name": STEERING_JOINTS[label], "id": joint_id}
+                for label, joint_id in steering_ids.items()
+            },
+            "action_wheel_ids": action_term._wheel_ids,
+            "action_wheel_names": action_term._wheel_names,
+            "action_steering_ids": action_term._steering_ids,
+            "action_steering_names": action_term._steering_names,
             "task": args_cli.task,
             "profile": args_cli.profile,
             "commands": profile,
@@ -361,6 +405,23 @@ def main() -> None:
             "steering_config_source": str(DEFAULT_STEERING_CONFIG_PATH),
             "steering_config_sha256": _sha256(DEFAULT_STEERING_CONFIG_PATH),
         }
+        runtime = {
+            "python": sys.executable,
+            "versions": {name: importlib.metadata.version(name)
+                         for name in ("isaaclab", "osqp", "skrl", "torch", "numpy", "scipy")},
+            "osqp_native_version": __import__("osqp").OSQP().version(),
+            "osqp_module": __import__("osqp").__file__,
+            "isaac_sim_version": (Path(__file__).resolve().parents[2] / "_isaac_sim/VERSION").read_text().strip(),
+            "environment": base_env.cfg.to_dict(),
+            "action_class_file": inspect.getfile(type(action_term)),
+            "apply_actions_file": inspect.getfile(action_term.apply_actions),
+            "apply_actions_sha256": _sha256(Path(inspect.getfile(action_term.apply_actions))),
+            "control_dt_s": step_dt,
+            "torque_semantics": "Last physics substep actuator computed/applied torque; not an interval mean or contact-force measurement.",
+        }
+        (output_dir / "runtime_environment.json").write_text(
+            json.dumps(runtime, indent=2, default=str), encoding="utf-8"
+        )
         (output_dir / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
         print(f"[INFO] MPC step CSV: {output_dir / 'steps.csv'}")
         print(f"[INFO] MPC predictions: {output_dir / 'predictions.jsonl'}")
@@ -373,4 +434,5 @@ if __name__ == "__main__":
     try:
         main()
     finally:
+        sys.stdout.flush()
         simulation_app.close()
