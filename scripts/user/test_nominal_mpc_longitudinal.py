@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from analyze_nominal_mpc_longitudinal import confirmed_crossing, last_window, stage_metrics, WHEELS
+from run_nominal_mpc_longitudinal import cases
 
 
 def fixture(speed=0.3, count=160):
@@ -32,6 +33,14 @@ def fixture(speed=0.3, count=160):
 
 
 class MetricsTest(unittest.TestCase):
+    def test_revised_formal_matrix(self):
+        formal = cases("formal")
+        self.assertEqual(len(formal), 12)
+        self.assertEqual(sum(len(speeds) for _, speeds, _, _, _ in formal), 29)
+        self.assertEqual(sum(duration for _, _, duration, _, _ in formal), 232)
+        self.assertTrue(all(-0.5 <= speed <= 0.8 for _, speeds, _, _, _ in formal for speed in speeds))
+        self.assertEqual(formal[6][1], [0.8])
+
     def test_open_left_steady_window(self):
         frame = fixture()
         frame["sample_time_s"] += 0.1

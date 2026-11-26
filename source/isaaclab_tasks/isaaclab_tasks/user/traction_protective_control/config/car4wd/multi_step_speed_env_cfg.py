@@ -6,7 +6,7 @@ from ...mdp import MultiStepSpeedCommandCfg
 from .command_follow_env_cfg import CommandFollowEnvCfg
 
 
-SPEED_LEVELS = (0.3, 0.6, 0.9, 1.2, 0.6, 0.3)
+SPEED_LEVELS = (0.3, 0.5, 0.6, 0.8, 0.6, 0.3)
 STEP_DURATION_S = 5.0
 
 

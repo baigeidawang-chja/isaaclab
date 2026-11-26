@@ -18,7 +18,7 @@ TASK = "Isaac-TractionProtect-CommandFollow-Car4WD-v0"
 BASE = REPO / "source/isaaclab_tasks/isaaclab_tasks/user/traction_protective_control"
 FROZEN = {
     "nominal_car4wd_bidirectional_model.json": "78fe257a39f108a103c0a0edb3dcc1afb53aff3b861bcac9926cfca7a28da3f3",
-    "nominal_car4wd_bidirectional_osqp_mpc.json": "96371980dd186468da813fe339f02838956ef49f9fa19ba8be043c6ef6f1aded",
+    "nominal_car4wd_bidirectional_osqp_mpc.json": "7d6f9fe16082d59e416e7a841fbb233adbb6c0827d4ad84300678680a4ceaf38",
     "nominal_car4wd_steering.json": "16104c2c3febad5921d21d9d1989191cd2ee574c5d8c78325d319af778090ac0",
 }
 
@@ -38,12 +38,12 @@ def capture(command):
 def cases(phase):
     if phase == "smoke":
         return [("B1", [0.6], 4, 4, 42), ("B2", [0.6], 4, 4, 42), ("B3", [0.6], 4, 4, 43)]
-    return [(f"F{i}", [v], 8, 8, 42) for i, v in enumerate([-0.5, -0.25, 0, 0.3, 0.6, 0.9, 1.2], 1)] + [
-        ("S1", [0.3, 0.6, 0.9, 1.2, 0.9, 0.6, 0.3], 56, 8, 42),
-        ("S2a", [0.6, 0.3, 1.2], 24, 8, 42),
-        ("S2b", [0.6, 0.9, 1.2], 24, 8, 42),
+    return [(f"F{i}", [v], 8, 8, 42) for i, v in enumerate([-0.5, -0.25, 0, 0.3, 0.5, 0.6, 0.8], 1)] + [
+        ("S1", [0.3, 0.5, 0.6, 0.8, 0.6, 0.5, 0.3], 56, 8, 42),
+        ("S2a", [0.5, 0.3, 0.8], 24, 8, 42),
+        ("S2b", [0.5, 0.6, 0.8], 24, 8, 42),
         ("S3", [0.5, -0.5, 0.5, 0, -0.5, 0], 48, 8, 42),
-        ("S4", [1.2, -0.5, 1.2], 24, 8, 42),
+        ("S4", [0.8, -0.5, 0.8], 24, 8, 42),
     ]
 
 
@@ -52,6 +52,8 @@ def provenance(root):
     target.mkdir()
     paths = list(BASE.rglob("*.py")) + list((BASE / "mpc/config").glob("*.json"))
     paths += [REPO / "scripts/user/eval_nominal_mpc.py", REPO / "scripts/user/analyze_nominal_mpc.py",
+              REPO / "scripts/user/analyze_nominal_mpc_longitudinal.py", REPO / "scripts/user/verify_nominal_mpc_longitudinal.py",
+              REPO / "scripts/user/test_nominal_mpc_longitudinal.py",
               Path(__file__), REPO / "source/isaaclab_assets/isaaclab_assets/robots/car_edit.py",
               REPO / "WheeledLab/source/wheeledlab/wheeledlab/envs/mdp/actions/ackermann_actions.py",
               REPO / "AGENTS.md"]
@@ -78,7 +80,7 @@ def provenance(root):
         "gpu": capture(["nvidia-smi", "--query-gpu=name,driver_version,memory.total", "--format=csv"]),
         "files_sha256": records,
         "historical_identification_usd_hash": None,
-        "trend_rule": "At 1.2 m/s, extend if absolute last-2s OLS slope >0.01 m/s^2 or last-1s vs previous-1s mean difference >0.02 m/s.",
+        "trend_rule": "At 0.8 m/s, extend if absolute last-2s OLS slope >0.01 m/s^2 or last-1s vs previous-1s mean difference >0.02 m/s.",
         "cross_machine_status": "local_only",
     })
 

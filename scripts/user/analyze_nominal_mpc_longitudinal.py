@@ -122,7 +122,7 @@ def stage_metrics(frame, previous_speed, expected_samples, nominal_min, nominal_
     difference = float(tail.actual_body_vx_m_s.mean() - before_tail.actual_body_vx_m_s.mean()) if len(before_tail) else 0.0
     result["last_2s_speed_slope_m_s2"] = slope
     result["last_two_1s_mean_difference_m_s"] = difference
-    result["extension_trigger"] = abs(v - 1.2) < 1e-9 and (abs(slope) > 0.01 or abs(difference) > 0.02)
+    result["extension_trigger"] = abs(v - 0.8) < 1e-9 and (abs(slope) > 0.01 or abs(difference) > 0.02)
     return result
 
 
@@ -202,11 +202,11 @@ def draw(root, frames, stages):
 
     fixed = stages[stages.case.str.startswith("F")]
     fig, ax = plt.subplots(figsize=(6.5, 5))
-    ax.plot([-0.6, 1.3], [-0.6, 1.3], "--", color="0.5", label="Identity")
+    ax.plot([-0.6, 0.9], [-0.6, 0.9], "--", color="0.5", label="Identity")
     ax.scatter(fixed.desired_speed_m_s, fixed.steady_actual_body_speed_m_s, c="#007d77", zorder=3)
     for row in fixed.itertuples():
         ax.annotate(row.case, (row.desired_speed_m_s, row.steady_actual_body_speed_m_s), xytext=(5, -12), textcoords="offset points")
-    ax.set(xlabel="Reference speed (m/s)", ylabel="Measured body speed, final 1 s mean (m/s)", title="Fixed-speed runs: one run per operating point", xlim=(-0.6, 1.3), ylim=(-0.6, 1.3))
+    ax.set(xlabel="Reference speed (m/s)", ylabel="Measured body speed, final 1 s mean (m/s)", title="Fixed-speed runs: one run per operating point", xlim=(-0.6, 0.9), ylim=(-0.6, 0.9))
     ax.legend()
     finish(fig, "01_fixed_speed")
 
@@ -229,8 +229,8 @@ def draw(root, frames, stages):
         axes[0].plot(t, f.actual_body_vx_m_s, color=color, label=name + " measured")
         axes[0].plot(f.command_time_s - 16, f.mpc_speed_target_m_s, ":", color=color, label=name + " MPC target")
         axes[1].step(f.command_time_s - 16, (f.mpc_speed_target_m_s >= 1.5 - 1e-4).astype(float) + (0 if name == "S2a" else 1.5), where="post", color=color, label=name)
-    axes[0].axhline(1.2, color="black", linestyle="--", label="Reference = 1.2 m/s")
-    axes[0].axhspan(1.15, 1.25, color="0.5", alpha=0.1)
+    axes[0].axhline(0.8, color="black", linestyle="--", label="Reference = 0.8 m/s")
+    axes[0].axhspan(0.75, 0.85, color="0.5", alpha=0.1)
     axes[0].set(ylabel="Speed (m/s)", title="S2: different entry conditions (not an isolated history effect)")
     axes[0].legend(ncol=2)
     axes[1].set(xlabel="Time since reference switch (s)", ylabel="Upper-bound hit", yticks=[0, 1, 1.5, 2.5], yticklabels=["a: 0", "a: 1", "b: 0", "b: 1"])

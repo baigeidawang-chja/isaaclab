@@ -200,7 +200,7 @@ heading_error = wrap_to_pi(desired_heading - current_heading)
 Current command ranges (signed speed):
 
 ```text
-desired_speed: -0.5 to 1.2 m/s
+desired_speed: -0.5 to 0.8 m/s
 desired_heading: -0.4 to 0.4 rad
 ```
 
@@ -211,7 +211,7 @@ desired heading; do not rotate the heading command by pi. This reference
 range is distinct from the ActionTerm physical input range `[-1.5, 1.5] m/s`.
 The current nominal MPC uses the independently validated bidirectional model
 `mpc/config/nominal_car4wd_bidirectional_model.json` and signed heading
-linearization. Its planner reference range is also `[-0.5, 1.2] m/s`;
+linearization. Its planner reference range is now `[-0.5, 0.8] m/s`;
 identified physical speed inputs and MPC input bounds are `[-1.5, 1.5] m/s`.
 These are target/reference ranges, not hard guarantees on measured speed.
 The older `nominal_car4wd_model.json` and forward-only MPC config remain

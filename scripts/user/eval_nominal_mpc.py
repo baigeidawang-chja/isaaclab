@@ -23,7 +23,7 @@ parser.add_argument(
     help="Diagnostic only: replace the MPC speed output in m/s while keeping its steering output.",
 )
 parser.add_argument("--heading", type=float, default=0.0)
-parser.add_argument("--speed_sequence", default="0.3,0.8,1.2,0.6")
+parser.add_argument("--speed_sequence", default="0.3,0.5,0.8,0.6")
 parser.add_argument("--heading_sequence", default="0.0,0.2,-0.2,0.0")
 parser.add_argument("--output_dir", default=None)
 parser.add_argument("--seed", type=int, default=42)

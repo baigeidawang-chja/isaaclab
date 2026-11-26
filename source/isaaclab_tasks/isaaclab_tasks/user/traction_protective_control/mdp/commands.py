@@ -230,7 +230,7 @@ class PlannerCommandCfg(CommandTermCfg):
 
     class_type: type[CommandTerm] = PlannerCommand
     asset_name: str = MISSING
-    desired_speed_range: tuple[float, float] = (-0.5, 1.2)
+    desired_speed_range: tuple[float, float] = (-0.5, 0.8)
     desired_heading_range: tuple[float, float] = (-0.4, 0.4)
     speed_visualizer_scale: float = 2.0
     target_arrow_height: float = 0.65
@@ -251,7 +251,7 @@ class MultiStepSpeedCommandCfg(PlannerCommandCfg):
     """Configuration for a discrete speed profile with one heading per episode."""
 
     class_type: type[CommandTerm] = MultiStepSpeedCommand
-    speed_levels: tuple[float, ...] = (0.3, 0.6, 0.9, 1.2, 0.6, 0.3)
+    speed_levels: tuple[float, ...] = (0.3, 0.5, 0.6, 0.8, 0.6, 0.3)
     """Speed levels visited in order, one level per command resampling interval."""
 
 

@@ -83,7 +83,8 @@ Do not add speculative issues that have not been reproduced.
 ## Reverse MPC interface gap resolved with independent bidirectional data
 
 - Resolved on 2026-11-20: new independent identification/validation cover
-  physical inputs [-1.5, 1.5] m/s; planner references remain [-0.5, 1.2] m/s.
+  physical inputs [-1.5, 1.5] m/s; current planner references are [-0.5, 0.8] m/s
+  (the earlier [-0.5, 1.2] m/s experiment records remain historical).
 - Default parameters/config are `nominal_car4wd_bidirectional_model.json`
   and `nominal_car4wd_bidirectional_osqp_mpc.json`; older files are preserved.
 - Heading linearization now preserves measured travel direction, using the

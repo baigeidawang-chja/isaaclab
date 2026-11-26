@@ -13,7 +13,7 @@
     "status": "unchanged baseline weights; not tuned on validation data"
   },
   "constraints": {
-    "planner_reference_bounds": {"speed_m_s": [-0.5, 1.2]},
+    "planner_reference_bounds": {"speed_m_s": [-0.5, 0.8]},
     "action_term_physical_bounds": {
       "speed_target_m_s": [-1.5, 1.5],
       "center_steering_target_rad": [-0.24, 0.24]

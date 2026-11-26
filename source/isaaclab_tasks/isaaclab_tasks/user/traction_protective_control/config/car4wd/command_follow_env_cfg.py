@@ -64,7 +64,7 @@ class CommandsCfg:
     planner_command = PlannerCommandCfg(
         asset_name="robot",
         resampling_time_range=(50.0, 50.0),
-        desired_speed_range=(-0.5, 1.2),
+        desired_speed_range=(-0.5, 0.8),
         desired_heading_range=(-0.4, 0.4),
         debug_vis=False,
     )
@@ -217,7 +217,7 @@ class CommandFollowEnvCfg_PLAY(CommandFollowEnvCfg):
         self.scene.num_envs = 16
         self.scene.env_spacing = 3.0
         self.commands.planner_command.resampling_time_range = (100.0, 100.0)
-        self.commands.planner_command.desired_speed_range = (-0.5, 1.2)
+        self.commands.planner_command.desired_speed_range = (-0.5, 0.8)
         self.commands.planner_command.desired_heading_range = (0.0, 0.0)
         self.commands.planner_command.debug_vis = True
         self.observations.policy.enable_corruption = False

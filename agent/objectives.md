@@ -23,7 +23,7 @@ The policy must follow planner-provided desired speed and heading commands using
 
 `[executed_speed, steering_control]`
 
-Primary Train/Play planner speed range is `[-0.5, 1.2] m/s`. Negative speed
+Primary Train/Play planner speed range is `[-0.5, 0.8] m/s`. Negative speed
 means reversing with the same body-heading reference. The ActionTerm retains
 `[-1.5, 1.5] m/s` input headroom; this is not a hard measured-speed limiter.
 Scripted step-task profiles keep their separate prescribed levels.
@@ -54,7 +54,7 @@ The current default is the independently validated bidirectional model:
 `nominal_car4wd_bidirectional_osqp_mpc.json` and validation evidence.
 Identification-only model selection used 8000 samples; the separate 5040-sample
 validation was evaluated once after freezing parameters. Physical speed inputs
-are [-1.5, 1.5] m/s; planner/MPC references remain [-0.5, 1.2] m/s.
+are [-1.5, 1.5] m/s; current planner/MPC references are [-0.5, 0.8] m/s.
 The model has dt=0.05 s, three signed speed regions, zero selected delays,
 first-order steering, and unit-gain Ackermann yaw. Independent validation RMSE:
 0.04834 m/s speed, 0.000452 rad steering, 0.05258 rad/s algebraic yaw rate.
@@ -65,10 +65,13 @@ Reverse MPC now uses signed heading linearization and compatible constraints.
 signed speed and joint steps) passed with no solver fallback. Current record:
 `agent/experiments/2026-11-20_bidirectional_nominal_mpc.md`.
 
-Next: repeat-seed nominal closed-loop evaluation and quantify cross-zero
-transients/high-speed saturation before any weight or model changes. A 1.2 m/s
-reference still showed 0.03-0.05 m/s steady underspeed in the short checks.
-This is not a completed full-range performance baseline or a hard speed limiter.
+The 2026-11-24 Chapter 2 runs and 2026-11-26 high-speed diagnostic used the
+former 1.2 m/s planner upper bound and remain historical, immutable records.
+The new 0.8 m/s longitudinal matrix is complete locally: 12 formal runs,
+29 stages, plus three technical short tests and four longer holds. Results:
+`agent/experiments/2026-11-26_nominal_mpc_longitudinal_ref08.md`. The high-end
+mean tracks the command, but sustained in-band stability remains unproven.
+Do not retune the model or MPC weights to match historical results.
 Keep validation data out of tuning. Actuator/contact settings remain fixed
 under the user's scope decision; PPO re-evaluation is a separate work item.
 
