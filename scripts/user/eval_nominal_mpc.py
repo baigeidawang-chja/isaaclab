@@ -18,6 +18,10 @@ parser.add_argument("--profile", choices=("fixed", "speed_step", "heading_step",
 parser.add_argument("--duration", type=float, default=2.0)
 parser.add_argument("--segment_duration", type=float, default=2.0)
 parser.add_argument("--speed", type=float, default=0.6)
+parser.add_argument(
+    "--physical-speed-override", type=float, default=None,
+    help="Diagnostic only: replace the MPC speed output in m/s while keeping its steering output.",
+)
 parser.add_argument("--heading", type=float, default=0.0)
 parser.add_argument("--speed_sequence", default="0.3,0.8,1.2,0.6")
 parser.add_argument("--heading_sequence", default="0.0,0.2,-0.2,0.0")
@@ -167,6 +171,13 @@ def main() -> None:
         raise RuntimeError("Environment step_dt does not match identified model/MPC dt.")
     expected_scale = (1.5, 0.24)
     expected_offset = (0.0, 0.0)
+    speed_override = args_cli.physical_speed_override
+    if speed_override is not None and (
+        not math.isfinite(speed_override)
+        or not action_offset[0] - action_scale[0] <= speed_override <= action_offset[0] + action_scale[0]
+        or not controller.config.control_lower[0] <= speed_override <= controller.config.control_upper[0]
+    ):
+        raise ValueError("Physical speed override is outside the ActionTerm/MPC input range.")
     scale_matches = all(
         math.isclose(actual, expected, abs_tol=tolerance)
         for actual, expected in zip(action_scale, expected_scale)
@@ -228,7 +239,12 @@ def main() -> None:
                 NominalMPCReference(desired_speed),
                 previous_executed,
             )
-            normalized = adapter.to_normalized(result.control)
+            if speed_override is not None and result.fallback_used:
+                raise RuntimeError("Steering MPC fell back; paired diagnostic cannot continue.")
+            selected_control = result.control.copy()
+            if speed_override is not None:
+                selected_control[0] = speed_override
+            normalized = adapter.to_normalized(selected_control)
             raw_action = torch.tensor(
                 normalized[None, :], device=base_env.device, dtype=torch.float32
             )
@@ -270,6 +286,7 @@ def main() -> None:
                 "pre_body_speed_m_s": body_speed,
                 "pre_equivalent_center_steering_rad": actual_center,
                 "mpc_speed_target_m_s": result.speed_target_m_s,
+                "selected_speed_target_m_s": float(selected_control[0]),
                 "mpc_steering_target_rad": result.steering_target_rad,
                 "normalized_action_speed": float(normalized[0]),
                 "normalized_action_steering": float(normalized[1]),
@@ -330,6 +347,7 @@ def main() -> None:
             predictions.append(
                 {
                     "step": step,
+                    "mpc_prediction_matches_selected_speed": speed_override is None,
                     "predicted_states": result.predicted_states.tolist(),
                     "predicted_controls": result.predicted_controls.tolist(),
                 }
@@ -382,6 +400,9 @@ def main() -> None:
             "action_steering_names": action_term._steering_names,
             "task": args_cli.task,
             "profile": args_cli.profile,
+            "longitudinal_output_mode": "nominal_mpc" if speed_override is None else "fixed_physical_speed_target",
+            "physical_speed_override_m_s": speed_override,
+            "prediction_role": "executed_mpc_plan" if speed_override is None else "counterfactual_mpc_plan",
             "commands": profile,
             "seed": args_cli.seed,
             "step_dt_s": step_dt,
